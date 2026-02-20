@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Aluguel de Mesas e Cadeiras</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        purple: {
+                            600: '#9333ea', // Adjust if needed to match a specific purple
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-white text-gray-800 font-sans">
+    <div id="app" class="min-h-screen flex flex-col items-center">
+        <!-- Dashboard will be rendered here -->
+        <p class="mt-10 text-gray-500">Carregando...</p>
+    </div>
+    <script type="module" src="./dist/dashboard.js"></script>
+</body>
+</html>
