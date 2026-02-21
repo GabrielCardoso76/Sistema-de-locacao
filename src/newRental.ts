@@ -210,6 +210,9 @@ export function renderNewRental(container: HTMLElement, onBack: () => void) {
 
     // Add rented items logic (mocking relation)
     items.forEach(({ item, qty }) => {
+        // Update stock
+        item.estoque_limpo -= qty;
+
         mockItensAlugados.push({
             id: (mockItensAlugados.length + 1).toString(),
             aluguel_id: newRental.id,

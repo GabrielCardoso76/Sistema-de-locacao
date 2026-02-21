@@ -1,6 +1,8 @@
 import { mockAlugueis, mockItems, mockItensAlugados } from './mockData';
 import { Aluguel } from './types';
 import { renderNewRental } from './newRental';
+import { renderCheckIn } from './checkIn';
+import { renderCleaning } from './cleaning';
 
 // Constants
 const TODAY = '2023-10-25';
@@ -37,7 +39,9 @@ export function renderDashboard() {
   const header = document.createElement('header');
   header.className = 'w-full bg-purple-600 text-white p-4 flex justify-between items-center shadow-md sticky top-0 z-10';
   header.innerHTML = `
-    <div class="w-8"></div> <!-- Spacer -->
+    <button id="cleaning-btn" class="text-white hover:text-purple-200 text-sm font-bold bg-purple-700 px-3 py-1 rounded">
+        Limpeza
+    </button>
     <div class="text-center">
         <h1 class="text-xl font-bold">Entregas de Hoje</h1>
         <p class="text-sm opacity-90">${TODAY}</p>
@@ -71,11 +75,15 @@ export function renderDashboard() {
                 ${rental.hora_entrega}
             </span>
           </div>
-          <div class="mt-2">
+          <div class="mt-2 flex gap-2">
              <a href="${generateSingleRouteUrl(rental.endereco)}" target="_blank"
-                class="block w-full text-center bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded transition-colors">
+                class="flex-1 block text-center bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded transition-colors">
                 Traçar Rota
              </a>
+             <button data-rental-id="${rental.id}"
+                class="flex-1 checkin-btn block text-center bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-4 rounded transition-colors">
+                Check-in
+             </button>
           </div>
         `;
         listContainer.appendChild(card);
@@ -100,6 +108,19 @@ export function renderDashboard() {
   // Event Listeners
   document.getElementById('new-rental-btn')?.addEventListener('click', () => {
     if (app) renderNewRental(app, renderDashboard);
+  });
+
+  document.getElementById('cleaning-btn')?.addEventListener('click', () => {
+    if (app) renderCleaning(app, renderDashboard);
+  });
+
+  const checkinButtons = document.querySelectorAll('.checkin-btn');
+  checkinButtons.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        const rentalId = (e.target as HTMLElement).dataset.rentalId;
+        const rental = mockAlugueis.find(r => r.id === rentalId);
+        if (app && rental) renderCheckIn(app, rental, renderDashboard);
+    });
   });
 }
 

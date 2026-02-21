@@ -298,6 +298,7 @@ function renderNewRental(container, onBack) {
     };
     mockAlugueis.push(newRental);
     items.forEach(({ item, qty }) => {
+      item.estoque_limpo -= qty;
       mockItensAlugados.push({
         id: (mockItensAlugados.length + 1).toString(),
         aluguel_id: newRental.id,
@@ -337,6 +338,187 @@ function showSuccess(container, rental, items, onBack) {
   document.getElementById("finish-btn")?.addEventListener("click", onBack);
 }
 
+// src/checkIn.ts
+function renderCheckIn(container, rental, onBack) {
+  container.innerHTML = "";
+  const rentedItems = mockItensAlugados.filter((ia) => ia.aluguel_id === rental.id);
+  const header = document.createElement("header");
+  header.className = "w-full bg-purple-600 text-white p-4 flex justify-between items-center shadow-md sticky top-0 z-10";
+  header.innerHTML = `
+    <button id="back-btn" class="bg-purple-700 hover:bg-purple-800 text-white font-bold py-1 px-3 rounded">
+      &larr; Voltar
+    </button>
+    <h1 class="text-xl font-bold">Check-in de Retorno</h1>
+    <div class="w-16"></div> <!-- Spacer -->
+  `;
+  container.appendChild(header);
+  const info = document.createElement("div");
+  info.className = "w-full max-w-md p-4 bg-purple-50 border-b border-purple-100";
+  info.innerHTML = `
+    <h2 class="font-bold text-lg text-purple-900">${rental.cliente_nome}</h2>
+    <p class="text-sm text-purple-700">Entregue em: ${rental.data_entrega}</p>
+  `;
+  container.appendChild(info);
+  const listContainer = document.createElement("div");
+  listContainer.className = "w-full max-w-md p-4 space-y-6 pb-20";
+  container.appendChild(listContainer);
+  rentedItems.forEach((ri) => {
+    const item = mockItems.find((i) => i.id === ri.item_id);
+    if (!item)
+      return;
+    const itemCard = document.createElement("div");
+    itemCard.className = "bg-white border border-gray-200 rounded-lg shadow-sm p-4";
+    itemCard.innerHTML = `
+      <div class="flex items-center gap-4 mb-3">
+        <img src="${item.foto}" alt="${item.nome}" class="w-12 h-12 rounded object-cover bg-gray-100">
+        <div>
+            <h3 class="font-bold text-gray-800">${item.nome}</h3>
+            <p class="text-sm text-gray-500">Alugado: <span class="font-bold text-gray-800">${ri.quantidade}</span></p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-3 gap-2 text-center text-sm">
+        <div>
+            <label class="block text-green-600 font-bold mb-1">Limpo</label>
+            <input type="number" min="0" max="${ri.quantidade}" value="${ri.quantidade}" data-type="limpo" data-id="${ri.id}" class="w-full p-2 border rounded text-center input-checkin">
+        </div>
+        <div>
+            <label class="block text-yellow-600 font-bold mb-1">Sujo</label>
+            <input type="number" min="0" max="${ri.quantidade}" value="0" data-type="sujo" data-id="${ri.id}" class="w-full p-2 border rounded text-center input-checkin">
+        </div>
+        <div>
+            <label class="block text-red-600 font-bold mb-1">Quebrado</label>
+            <input type="number" min="0" max="${ri.quantidade}" value="0" data-type="quebrado" data-id="${ri.id}" class="w-full p-2 border rounded text-center input-checkin">
+        </div>
+      </div>
+      <p id="error-${ri.id}" class="text-xs text-red-600 font-bold mt-2 hidden text-center">Soma incorreta! Total deve ser ${ri.quantidade}</p>
+    `;
+    listContainer.appendChild(itemCard);
+  });
+  const footer = document.createElement("div");
+  footer.className = "fixed bottom-0 left-0 right-0 bg-white border-t p-4 shadow-lg";
+  footer.innerHTML = `
+    <button id="finish-checkin" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-lg shadow transition-colors">
+        Finalizar Check-in
+    </button>
+  `;
+  container.appendChild(footer);
+  const inputs = document.querySelectorAll(".input-checkin");
+  const finishBtn = document.getElementById("finish-checkin");
+  const backBtn = document.getElementById("back-btn");
+  backBtn?.addEventListener("click", onBack);
+  function validate() {
+    let isValid = true;
+    rentedItems.forEach((ri) => {
+      const limpoInput = document.querySelector(`input[data-id="${ri.id}"][data-type="limpo"]`);
+      const sujoInput = document.querySelector(`input[data-id="${ri.id}"][data-type="sujo"]`);
+      const quebradoInput = document.querySelector(`input[data-id="${ri.id}"][data-type="quebrado"]`);
+      const errorMsg = document.getElementById(`error-${ri.id}`);
+      const limpo = parseInt(limpoInput.value || "0");
+      const sujo = parseInt(sujoInput.value || "0");
+      const quebrado = parseInt(quebradoInput.value || "0");
+      if (limpo + sujo + quebrado !== ri.quantidade) {
+        isValid = false;
+        if (errorMsg)
+          errorMsg.classList.remove("hidden");
+        limpoInput.classList.add("border-red-500");
+        sujoInput.classList.add("border-red-500");
+        quebradoInput.classList.add("border-red-500");
+      } else {
+        if (errorMsg)
+          errorMsg.classList.add("hidden");
+        limpoInput.classList.remove("border-red-500");
+        sujoInput.classList.remove("border-red-500");
+        quebradoInput.classList.remove("border-red-500");
+      }
+    });
+    finishBtn.disabled = !isValid;
+    finishBtn.classList.toggle("opacity-50", !isValid);
+    finishBtn.classList.toggle("cursor-not-allowed", !isValid);
+  }
+  inputs.forEach((input) => input.addEventListener("input", validate));
+  finishBtn.addEventListener("click", () => {
+    rentedItems.forEach((ri) => {
+      const item = mockItems.find((i) => i.id === ri.item_id);
+      if (!item)
+        return;
+      const limpo = parseInt(document.querySelector(`input[data-id="${ri.id}"][data-type="limpo"]`).value || "0");
+      const sujo = parseInt(document.querySelector(`input[data-id="${ri.id}"][data-type="sujo"]`).value || "0");
+      const quebrado = parseInt(document.querySelector(`input[data-id="${ri.id}"][data-type="quebrado"]`).value || "0");
+      item.estoque_limpo += limpo;
+      item.estoque_sujo += sujo;
+      item.estoque_manutencao += quebrado;
+    });
+    rental.status = "Concluído";
+    alert("Check-in realizado com sucesso! Estoque atualizado.");
+    onBack();
+  });
+}
+
+// src/cleaning.ts
+function renderCleaning(container, onBack) {
+  container.innerHTML = "";
+  const header = document.createElement("header");
+  header.className = "w-full bg-purple-600 text-white p-4 flex justify-between items-center shadow-md sticky top-0 z-10";
+  header.innerHTML = `
+    <button id="back-btn-cleaning" class="bg-purple-700 hover:bg-purple-800 text-white font-bold py-1 px-3 rounded">
+      &larr; Voltar
+    </button>
+    <h1 class="text-xl font-bold">Limpeza</h1>
+    <div class="w-16"></div> <!-- Spacer -->
+  `;
+  container.appendChild(header);
+  const listContainer = document.createElement("div");
+  listContainer.className = "w-full max-w-md p-4 space-y-6 pb-20";
+  container.appendChild(listContainer);
+  const dirtyItems = mockItems.filter((i) => i.estoque_sujo > 0);
+  if (dirtyItems.length === 0) {
+    listContainer.innerHTML = '<p class="text-center text-gray-500 mt-10">Nenhum item sujo no estoque.</p>';
+  }
+  dirtyItems.forEach((item) => {
+    const itemCard = document.createElement("div");
+    itemCard.className = "bg-white border border-gray-200 rounded-lg shadow-sm p-4 flex flex-col gap-3";
+    itemCard.innerHTML = `
+      <div class="flex items-center gap-4">
+        <img src="${item.foto}" alt="${item.nome}" class="w-12 h-12 rounded object-cover bg-gray-100">
+        <div>
+            <h3 class="font-bold text-gray-800">${item.nome}</h3>
+            <p class="text-sm text-yellow-600 font-bold">Sujo: ${item.estoque_sujo}</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2 mt-2">
+        <input type="number" min="1" max="${item.estoque_sujo}" value="${item.estoque_sujo}"
+               id="clean-qty-${item.id}" class="w-20 p-2 border rounded text-center">
+        <button data-id="${item.id}" class="btn-clean flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded transition-colors">
+            Marcar como Limpo
+        </button>
+      </div>
+    `;
+    listContainer.appendChild(itemCard);
+  });
+  document.getElementById("back-btn-cleaning")?.addEventListener("click", onBack);
+  const cleanButtons = document.querySelectorAll(".btn-clean");
+  cleanButtons.forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      const id = e.target.dataset.id;
+      if (!id)
+        return;
+      const input = document.getElementById(`clean-qty-${id}`);
+      const qty = parseInt(input.value || "0");
+      const item = mockItems.find((i) => i.id === id);
+      if (item && qty > 0 && qty <= item.estoque_sujo) {
+        item.estoque_sujo -= qty;
+        item.estoque_limpo += qty;
+        alert(`${qty}x ${item.nome} marcados como limpos!`);
+        renderCleaning(container, onBack);
+      } else {
+        alert("Quantidade inválida.");
+      }
+    });
+  });
+}
+
 // src/dashboard.ts
 var TODAY = "2023-10-25";
 function generateSingleRouteUrl(address) {
@@ -360,7 +542,9 @@ function renderDashboard() {
   const header = document.createElement("header");
   header.className = "w-full bg-purple-600 text-white p-4 flex justify-between items-center shadow-md sticky top-0 z-10";
   header.innerHTML = `
-    <div class="w-8"></div> <!-- Spacer -->
+    <button id="cleaning-btn" class="text-white hover:text-purple-200 text-sm font-bold bg-purple-700 px-3 py-1 rounded">
+        Limpeza
+    </button>
     <div class="text-center">
         <h1 class="text-xl font-bold">Entregas de Hoje</h1>
         <p class="text-sm opacity-90">${TODAY}</p>
@@ -389,11 +573,15 @@ function renderDashboard() {
                 ${rental.hora_entrega}
             </span>
           </div>
-          <div class="mt-2">
+          <div class="mt-2 flex gap-2">
              <a href="${generateSingleRouteUrl(rental.endereco)}" target="_blank"
-                class="block w-full text-center bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded transition-colors">
+                class="flex-1 block text-center bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded transition-colors">
                 Traçar Rota
              </a>
+             <button data-rental-id="${rental.id}"
+                class="flex-1 checkin-btn block text-center bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-4 rounded transition-colors">
+                Check-in
+             </button>
           </div>
         `;
       listContainer.appendChild(card);
@@ -413,6 +601,19 @@ function renderDashboard() {
   document.getElementById("new-rental-btn")?.addEventListener("click", () => {
     if (app)
       renderNewRental(app, renderDashboard);
+  });
+  document.getElementById("cleaning-btn")?.addEventListener("click", () => {
+    if (app)
+      renderCleaning(app, renderDashboard);
+  });
+  const checkinButtons = document.querySelectorAll(".checkin-btn");
+  checkinButtons.forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      const rentalId = e.target.dataset.rentalId;
+      const rental = mockAlugueis.find((r) => r.id === rentalId);
+      if (app && rental)
+        renderCheckIn(app, rental, renderDashboard);
+    });
   });
 }
 if (typeof document !== "undefined") {
