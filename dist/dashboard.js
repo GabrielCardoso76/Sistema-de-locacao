@@ -583,6 +583,10 @@ function renderDashboard() {
                 Check-in
              </button>
           </div>
+          <button data-rental-id="${rental.id}"
+            class="cancel-btn w-full mt-2 text-center text-red-500 hover:text-red-700 hover:bg-red-50 font-medium py-2 px-4 rounded border border-transparent hover:border-red-200 transition-colors text-sm">
+            Cancelar Aluguel
+          </button>
         `;
       listContainer.appendChild(card);
     });
@@ -613,6 +617,27 @@ function renderDashboard() {
       const rental = mockAlugueis.find((r) => r.id === rentalId);
       if (app && rental)
         renderCheckIn(app, rental, renderDashboard);
+    });
+  });
+  const cancelButtons = document.querySelectorAll(".cancel-btn");
+  cancelButtons.forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      const rentalId = e.target.dataset.rentalId;
+      const rental = mockAlugueis.find((r) => r.id === rentalId);
+      if (!rental)
+        return;
+      if (confirm(`Tem certeza que deseja CANCELAR o aluguel de ${rental.cliente_nome}?`)) {
+        const rentedItems = mockItensAlugados.filter((ia) => ia.aluguel_id === rental.id);
+        rentedItems.forEach((ri) => {
+          const item = mockItems.find((i) => i.id === ri.item_id);
+          if (item) {
+            item.estoque_limpo += ri.quantidade;
+          }
+        });
+        rental.status = "Cancelado";
+        alert("Aluguel cancelado com sucesso! Itens devolvidos ao estoque.");
+        renderDashboard();
+      }
     });
   });
 }
