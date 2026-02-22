@@ -1,5 +1,5 @@
 import { Item, Aluguel, ItemAlugado } from './types';
-import { mockAlugueis, mockItems, mockItensAlugados } from './mockData';
+import { mockAlugueis, mockItems, mockItensAlugados, saveState } from './store';
 
 // Helper to format currency
 const formatCurrency = (value: number) => {
@@ -221,6 +221,7 @@ export function renderNewRental(container: HTMLElement, onBack: () => void) {
         });
     });
 
+    saveState();
     showSuccess(container, newRental, items, onBack);
   });
 }

@@ -1,4 +1,4 @@
-import { mockItems } from './mockData';
+import { mockItems, saveState } from './store';
 
 export function renderCleaning(container: HTMLElement, onBack: () => void) {
   container.innerHTML = '';
@@ -66,6 +66,7 @@ export function renderCleaning(container: HTMLElement, onBack: () => void) {
         if (item && qty > 0 && qty <= item.estoque_sujo) {
             item.estoque_sujo -= qty;
             item.estoque_limpo += qty;
+            saveState();
             alert(`${qty}x ${item.nome} marcados como limpos!`);
             renderCleaning(container, onBack); // Re-render to update list
         } else {

@@ -1,6 +1,7 @@
 import { Item, Aluguel, ItemAlugado } from './types';
 
-export const mockItems: Item[] = [
+// Initial Mock Data (Fallback)
+const initialItems: Item[] = [
   {
     id: '1',
     nome: 'Mesa Plástica',
@@ -48,7 +49,7 @@ export const mockItems: Item[] = [
   },
 ];
 
-export const mockAlugueis: Aluguel[] = [
+const initialAlugueis: Aluguel[] = [
   {
     id: '1',
     cliente_nome: 'Maria Silva',
@@ -111,13 +112,45 @@ export const mockAlugueis: Aluguel[] = [
   },
 ];
 
-export const mockItensAlugados: ItemAlugado[] = [
-  { id: '1', aluguel_id: '1', item_id: '1', quantidade: 2 }, // 2 Mesas for Rental 1
-  { id: '2', aluguel_id: '1', item_id: '2', quantidade: 8 }, // 8 Cadeiras for Rental 1
-  { id: '3', aluguel_id: '2', item_id: '1', quantidade: 4 }, // 4 Mesas for Rental 2
-  { id: '4', aluguel_id: '2', item_id: '2', quantidade: 16 }, // 16 Cadeiras for Rental 2
-  { id: '5', aluguel_id: '3', item_id: '5', quantidade: 1 }, // 1 Pista de Comida for Rental 3
-  { id: '6', aluguel_id: '4', item_id: '1', quantidade: 1 }, // 1 Mesa for Rental 4
-  { id: '7', aluguel_id: '4', item_id: '2', quantidade: 4 }, // 4 Cadeiras for Rental 4
-  { id: '8', aluguel_id: '5', item_id: '3', quantidade: 2 }, // 2 Tampões for Rental 5
+const initialItensAlugados: ItemAlugado[] = [
+  { id: '1', aluguel_id: '1', item_id: '1', quantidade: 2 },
+  { id: '2', aluguel_id: '1', item_id: '2', quantidade: 8 },
+  { id: '3', aluguel_id: '2', item_id: '1', quantidade: 4 },
+  { id: '4', aluguel_id: '2', item_id: '2', quantidade: 16 },
+  { id: '5', aluguel_id: '3', item_id: '5', quantidade: 1 },
+  { id: '6', aluguel_id: '4', item_id: '1', quantidade: 1 },
+  { id: '7', aluguel_id: '4', item_id: '2', quantidade: 4 },
+  { id: '8', aluguel_id: '5', item_id: '3', quantidade: 2 },
 ];
+
+// Load from LocalStorage or use Fallback
+function loadFromStorage<T>(key: string, fallback: T): T {
+  try {
+    const stored = localStorage.getItem(key);
+    if (stored) {
+        console.log(`Loaded ${key} from storage`);
+        return JSON.parse(stored);
+    }
+    console.log(`Using fallback for ${key}`);
+    return fallback;
+  } catch (e) {
+    console.warn(`Failed to load ${key} from storage`, e);
+    return fallback;
+  }
+}
+
+export const mockItems: Item[] = loadFromStorage('rental_items', initialItems);
+export const mockAlugueis: Aluguel[] = loadFromStorage('rental_data', initialAlugueis);
+export const mockItensAlugados: ItemAlugado[] = loadFromStorage('rental_rented_items', initialItensAlugados);
+
+// Save State Function
+export function saveState() {
+  try {
+    console.log('Saving state...');
+    localStorage.setItem('rental_items', JSON.stringify(mockItems));
+    localStorage.setItem('rental_data', JSON.stringify(mockAlugueis));
+    localStorage.setItem('rental_rented_items', JSON.stringify(mockItensAlugados));
+  } catch (e) {
+    console.error('Failed to save state', e);
+  }
+}

@@ -1,4 +1,5 @@
-import { mockAlugueis, mockItems, mockItensAlugados } from './mockData';
+import './style.css';
+import { mockAlugueis, mockItems, mockItensAlugados, saveState } from './store';
 import { Aluguel } from './types';
 import { renderNewRental } from './newRental';
 import { renderCheckIn } from './checkIn';
@@ -23,7 +24,7 @@ export function generateMultiStopUrl(addresses: string[]): string {
 }
 
 // Render Logic
-export function renderDashboard() {
+function renderDashboard() {
   const app = document.getElementById('app');
   if (!app) return;
 
@@ -146,6 +147,9 @@ export function renderDashboard() {
 
             // Update Status
             rental.status = 'Cancelado';
+
+            // Save State
+            saveState();
 
             alert('Aluguel cancelado com sucesso! Itens devolvidos ao estoque.');
             renderDashboard(); // Re-render to remove from list

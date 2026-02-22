@@ -1,5 +1,5 @@
 import { Aluguel } from './types';
-import { mockItems, mockItensAlugados } from './mockData';
+import { mockItems, mockItensAlugados, saveState } from './store';
 
 export function renderCheckIn(container: HTMLElement, rental: Aluguel, onBack: () => void) {
   container.innerHTML = '';
@@ -136,6 +136,9 @@ export function renderCheckIn(container: HTMLElement, rental: Aluguel, onBack: (
 
     // Update Rental Status
     rental.status = 'Concluído';
+
+    // Save State
+    saveState();
 
     // Show Alert and Go Back
     alert('Check-in realizado com sucesso! Estoque atualizado.');
