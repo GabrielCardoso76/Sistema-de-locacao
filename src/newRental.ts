@@ -1,19 +1,10 @@
 import { Item, Aluguel } from './types';
 import { dataService } from './services/dataService';
+import { calculateDays, calculateRentalCost } from './utils/calculations';
 
 // Helper to format currency
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
-};
-
-// Helper to calculate days between two dates
-const calculateDays = (start: string, end: string): number => {
-  if (!start || !end) return 1;
-  const startDate = new Date(start);
-  const endDate = new Date(end);
-  const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  return diffDays > 0 ? diffDays : 1;
 };
 
 export async function renderNewRental(container: HTMLElement, onBack: () => void) {
@@ -157,7 +148,7 @@ export async function renderNewRental(container: HTMLElement, onBack: () => void
             input.classList.remove('border-red-500');
         }
 
-        total += qty * price * days;
+        total += calculateRentalCost(price, qty, days);
         });
 
         if (totalValueEl) totalValueEl.textContent = formatCurrency(total);
@@ -197,7 +188,7 @@ export async function renderNewRental(container: HTMLElement, onBack: () => void
                 if (qty > 0) {
                     const item = items.find(i => i.id === input.dataset.id);
                     if (item) {
-                        total += qty * item.valor_diaria * days;
+                        total += calculateRentalCost(item.valor_diaria, qty, days);
                         rentedItems.push({ item, qty });
                     }
                 }

@@ -187,6 +187,16 @@ export const dataService = {
       // Add rental
       rentals.push(rental);
 
+      // Validate Stock First
+      newItems.forEach(({ item, qty }) => {
+        const storedItem = items.find(i => i.id === item.id);
+        if (storedItem) {
+            if (storedItem.estoque_limpo < qty) {
+                throw new Error(`Insufficient stock for item: ${storedItem.nome}`);
+            }
+        }
+      });
+
       // Add rented items and update stock
       newItems.forEach(({ item, qty }) => {
         // Update local item reference (which is part of the `items` array)
