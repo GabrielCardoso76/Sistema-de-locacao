@@ -1,299 +1,168 @@
+import { supabase } from '../supabaseClient';
 import { Item, Aluguel, ItemAlugado } from '../types';
 
-// Fallback Initial Data
-const initialItems: Item[] = [
-  {
-    id: '1',
-    nome: 'Mesa Plástica',
-    foto: 'https://via.placeholder.com/150',
-    estoque_limpo: 50,
-    estoque_sujo: 0,
-    estoque_manutencao: 2,
-    valor_diaria: 10.0,
-  },
-  {
-    id: '2',
-    nome: 'Cadeira Plástica',
-    foto: 'https://via.placeholder.com/150',
-    estoque_limpo: 200,
-    estoque_sujo: 10,
-    estoque_manutencao: 5,
-    valor_diaria: 5.0,
-  },
-  {
-    id: '3',
-    nome: 'Tampão de Madeira',
-    foto: 'https://via.placeholder.com/150',
-    estoque_limpo: 20,
-    estoque_sujo: 0,
-    estoque_manutencao: 1,
-    valor_diaria: 15.0,
-  },
-  {
-    id: '4',
-    nome: 'Toalha de Mesa Roxa',
-    foto: 'https://via.placeholder.com/150',
-    estoque_limpo: 30,
-    estoque_sujo: 5,
-    estoque_manutencao: 0,
-    valor_diaria: 8.0,
-  },
-  {
-    id: '5',
-    nome: 'Pista de Comida',
-    foto: 'https://via.placeholder.com/150',
-    estoque_limpo: 5,
-    estoque_sujo: 0,
-    estoque_manutencao: 0,
-    valor_diaria: 50.0,
-  },
-];
-
-const initialAlugueis: Aluguel[] = [
-  {
-    id: '1',
-    cliente_nome: 'Maria Silva',
-    telefone: '(11) 99999-9999',
-    endereco: 'Rua das Flores, 123',
-    data_entrega: '2023-10-25',
-    hora_entrega: '10:00',
-    data_retirada: '2023-10-26',
-    hora_retirada: '10:00',
-    valor_total: 150.0,
-    status: 'Ativo',
-  },
-  {
-    id: '2',
-    cliente_nome: 'João Santos',
-    telefone: '(11) 98888-8888',
-    endereco: 'Av. Paulista, 1000',
-    data_entrega: '2023-10-20',
-    hora_entrega: '14:00',
-    data_retirada: '2023-10-21',
-    hora_retirada: '14:00',
-    valor_total: 200.0,
-    status: 'Concluído',
-  },
-  {
-    id: '3',
-    cliente_nome: 'Ana Costa',
-    telefone: '(11) 97777-7777',
-    endereco: 'Rua Augusta, 500',
-    data_entrega: '2023-10-30',
-    hora_entrega: '09:00',
-    data_retirada: '2023-10-31',
-    hora_retirada: '09:00',
-    valor_total: 100.0,
-    status: 'Cancelado',
-  },
-  {
-    id: '4',
-    cliente_nome: 'Carlos Oliveira',
-    telefone: '(11) 96666-6666',
-    endereco: 'Rua da Consolação, 200',
-    data_entrega: '2023-10-25',
-    hora_entrega: '11:30',
-    data_retirada: '2023-10-26',
-    hora_retirada: '11:30',
-    valor_total: 80.0,
-    status: 'Ativo',
-  },
-  {
-    id: '5',
-    cliente_nome: 'Fernanda Lima',
-    telefone: '(11) 95555-5555',
-    endereco: 'Rua Haddock Lobo, 300',
-    data_entrega: '2023-10-25',
-    hora_entrega: '09:00',
-    data_retirada: '2023-10-26',
-    hora_retirada: '09:00',
-    valor_total: 120.0,
-    status: 'Ativo',
-  },
-];
-
-const initialItensAlugados: ItemAlugado[] = [
-  { id: '1', aluguel_id: '1', item_id: '1', quantidade: 2 },
-  { id: '2', aluguel_id: '1', item_id: '2', quantidade: 8 },
-  { id: '3', aluguel_id: '2', item_id: '1', quantidade: 4 },
-  { id: '4', aluguel_id: '2', item_id: '2', quantidade: 16 },
-  { id: '5', aluguel_id: '3', item_id: '5', quantidade: 1 },
-  { id: '6', aluguel_id: '4', item_id: '1', quantidade: 1 },
-  { id: '7', aluguel_id: '4', item_id: '2', quantidade: 4 },
-  { id: '8', aluguel_id: '5', item_id: '3', quantidade: 2 },
-];
-
-// Helper to load/save
-function load<T>(key: string, fallback: T): T {
-  try {
-    const stored = localStorage.getItem(key);
-    return stored ? JSON.parse(stored) : fallback;
-  } catch {
-    return fallback;
-  }
-}
-
-function save(key: string, data: any) {
-  try {
-    localStorage.setItem(key, JSON.stringify(data));
-  } catch (e) {
-    console.error('Failed to save to localStorage', e);
-  }
-}
-
-// In-memory state (synced with LS)
-let items: Item[] = load('rental_items', initialItems);
-let rentals: Aluguel[] = load('rental_data', initialAlugueis);
-let rentedItems: ItemAlugado[] = load('rental_rented_items', initialItensAlugados);
-
-// --- Data Service ---
-
 export const dataService = {
-  // Get all items (async)
+  // Get all items
   getItems: async (): Promise<Item[]> => {
-    try {
-      // Simulate network delay
-      // await new Promise(resolve => setTimeout(resolve, 500));
-      return [...items];
-    } catch (error) {
-      console.error('Error fetching items:', error);
-      throw error;
-    }
+    const { data, error } = await supabase
+      .from('items')
+      .select('*')
+      .order('nome');
+
+    if (error) throw error;
+    return data || [];
   },
 
-  // Get all rentals (async)
+  // Get all rentals
   getRentals: async (): Promise<Aluguel[]> => {
-    try {
-      return [...rentals];
-    } catch (error) {
-      console.error('Error fetching rentals:', error);
-      throw error;
-    }
+    const { data, error } = await supabase
+      .from('rentals')
+      .select('*')
+      .order('data_entrega', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
   },
 
-  // Get rented items for a specific rental (async)
+  // Get rented items for a specific rental
   getRentedItems: async (rentalId: string): Promise<ItemAlugado[]> => {
-    try {
-      return rentedItems.filter(ri => ri.aluguel_id === rentalId);
-    } catch (error) {
-      console.error('Error fetching rented items:', error);
-      throw error;
-    }
+    const { data, error } = await supabase
+      .from('rented_items')
+      .select('*')
+      .eq('aluguel_id', rentalId);
+
+    if (error) throw error;
+    return data || [];
   },
 
-  // Save a new rental (async)
+  // Save a new rental
   saveRental: async (rental: Aluguel, newItems: { item: Item, qty: number }[]): Promise<void> => {
-    try {
-      // Add rental
-      rentals.push(rental);
-
-      // Validate Stock First
-      newItems.forEach(({ item, qty }) => {
-        const storedItem = items.find(i => i.id === item.id);
+    // 1. Validate Stock (Client-side check before server attempts)
+    // Fetch latest stock to be safe
+    const latestItems = await dataService.getItems();
+    newItems.forEach(({ item, qty }) => {
+        const storedItem = latestItems.find(i => i.id === item.id);
         if (storedItem) {
             if (storedItem.estoque_limpo < qty) {
-                throw new Error(`Insufficient stock for item: ${storedItem.nome}`);
+                throw new Error(`Estoque insuficiente para: ${storedItem.nome}`);
             }
         }
-      });
+    });
 
-      // Add rented items and update stock
-      newItems.forEach(({ item, qty }) => {
-        // Update local item reference (which is part of the `items` array)
-        const storedItem = items.find(i => i.id === item.id);
-        if (storedItem) {
-            storedItem.estoque_limpo -= qty;
-        }
+    // 2. Create Rental
+    // Remove 'id' if it's auto-generated or allow it if UUID provided.
+    // The interface has 'id', usually generated by DB.
+    // We'll omit 'id' so Supabase generates it, then we get it back.
+    const { id, ...rentalData } = rental;
 
-        rentedItems.push({
-            id: (rentedItems.length + 1).toString(), // Simple ID generation
-            aluguel_id: rental.id,
-            item_id: item.id,
-            quantidade: qty
+    const { data: rentalResult, error: rentalError } = await supabase
+        .from('rentals')
+        .insert([rentalData])
+        .select()
+        .single();
+
+    if (rentalError) throw rentalError;
+    const newRentalId = rentalResult.id;
+
+    // 3. Create Rented Items
+    const rentedItemsData = newItems.map(({ item, qty }) => ({
+        aluguel_id: newRentalId,
+        item_id: item.id,
+        quantidade: qty
+    }));
+
+    const { error: itemsError } = await supabase
+        .from('rented_items')
+        .insert(rentedItemsData);
+
+    if (itemsError) {
+        // Rollback rental? For simplicity, we just throw.
+        // Ideally we would delete the rental.
+        await supabase.from('rentals').delete().eq('id', newRentalId);
+        throw itemsError;
+    }
+
+    // 4. Update Stock
+    // We do this sequentially or parallel. RPC is better but client-side loop is acceptable for prototype.
+    for (const { item, qty } of newItems) {
+        const { error: stockError } = await supabase.rpc('decrement_stock', {
+            row_id: item.id,
+            quantity: qty
         });
-      });
 
-      // Save to storage
-      save('rental_data', rentals);
-      save('rental_items', items);
-      save('rental_rented_items', rentedItems);
-    } catch (error) {
-      console.error('Error saving rental:', error);
-      throw error;
+        // Fallback if RPC doesn't exist (user needs to create it, or we do direct update)
+        if (stockError) {
+             // Fallback: Read-Modify-Write (Optimistic)
+             // We already checked stock at step 1.
+             await supabase
+                .from('items')
+                .update({ estoque_limpo: item.estoque_limpo - qty })
+                .eq('id', item.id);
+        }
     }
   },
 
-  // Cancel a rental (async)
+  // Cancel a rental
   cancelRental: async (rentalId: string): Promise<void> => {
-    try {
-      const rental = rentals.find(r => r.id === rentalId);
-      if (!rental) throw new Error('Rental not found');
+    // Get rented items to know what to restore
+    const rentedItems = await dataService.getRentedItems(rentalId);
 
-      // Update status
-      rental.status = 'Cancelado';
+    // Update Status
+    const { error: statusError } = await supabase
+        .from('rentals')
+        .update({ status: 'Cancelado' })
+        .eq('id', rentalId);
 
-      // Restore stock
-      const rentalItems = rentedItems.filter(ri => ri.aluguel_id === rentalId);
-      rentalItems.forEach(ri => {
-        const item = items.find(i => i.id === ri.item_id);
+    if (statusError) throw statusError;
+
+    // Restore Stock
+    for (const ri of rentedItems) {
+        // We need to fetch current item state to increment
+        const { data: item } = await supabase.from('items').select('estoque_limpo').eq('id', ri.item_id).single();
         if (item) {
-            item.estoque_limpo += ri.quantidade;
+             await supabase
+            .from('items')
+            .update({ estoque_limpo: item.estoque_limpo + ri.quantidade })
+            .eq('id', ri.item_id);
         }
-      });
-
-      // Save
-      save('rental_data', rentals);
-      save('rental_items', items);
-    } catch (error) {
-      console.error('Error cancelling rental:', error);
-      throw error;
     }
   },
 
-  // Check-in a rental (async)
+  // Check-in a rental
   checkInRental: async (rentalId: string, returns: { itemId: string, limpo: number, sujo: number, quebrado: number }[]): Promise<void> => {
-    try {
-      const rental = rentals.find(r => r.id === rentalId);
-      if (!rental) throw new Error('Rental not found');
+    // Update Status
+    const { error: statusError } = await supabase
+        .from('rentals')
+        .update({ status: 'Concluído' })
+        .eq('id', rentalId);
 
-      rental.status = 'Concluído';
+    if (statusError) throw statusError;
 
-      // Update stock based on returns
-      returns.forEach(ret => {
-        const item = items.find(i => i.id === ret.itemId);
+    // Update Stock
+    for (const ret of returns) {
+        const { data: item } = await supabase.from('items').select('*').eq('id', ret.itemId).single();
         if (item) {
-            item.estoque_limpo += ret.limpo;
-            item.estoque_sujo += ret.sujo;
-            item.estoque_manutencao += ret.quebrado;
+            await supabase.from('items').update({
+                estoque_limpo: item.estoque_limpo + ret.limpo,
+                estoque_sujo: item.estoque_sujo + ret.sujo,
+                estoque_manutencao: item.estoque_manutencao + ret.quebrado
+            }).eq('id', ret.itemId);
         }
-      });
-
-      // Save
-      save('rental_data', rentals);
-      save('rental_items', items);
-    } catch (error) {
-      console.error('Error during check-in:', error);
-      throw error;
     }
   },
 
-  // Clean items (async)
+  // Clean items
   cleanItem: async (itemId: string, qty: number): Promise<void> => {
-    try {
-      const item = items.find(i => i.id === itemId);
-      if (!item) throw new Error('Item not found');
+    const { data: item } = await supabase.from('items').select('*').eq('id', itemId).single();
 
-      if (item.estoque_sujo >= qty) {
-        item.estoque_sujo -= qty;
-        item.estoque_limpo += qty;
+    if (!item) throw new Error('Item not found');
+    if (item.estoque_sujo < qty) throw new Error('Quantity exceeds dirty stock');
 
-        save('rental_items', items);
-      } else {
-        throw new Error('Quantity exceeds dirty stock');
-      }
-    } catch (error) {
-      console.error('Error cleaning item:', error);
-      throw error;
-    }
+    const { error } = await supabase.from('items').update({
+        estoque_sujo: item.estoque_sujo - qty,
+        estoque_limpo: item.estoque_limpo + qty
+    }).eq('id', itemId);
+
+    if (error) throw error;
   }
 };
