@@ -1,0 +1,143 @@
+"use client"
+
+import { useState } from "react"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { supabase } from "@/lib/supabase"
+import type { TipoProduto } from "@/lib/database.types"
+
+interface NovoProdutoDialogProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onSuccess: () => void
+}
+
+const tiposProduto: { value: TipoProduto; label: string }[] = [
+  { value: "jogo_mesa_cadeira", label: "Jogo Mesa + Cadeiras" },
+  { value: "mesa_avulsa", label: "Mesa Avulsa" },
+  { value: "pista_comida", label: "Pista de Comida" },
+  { value: "toalha", label: "Toalha" },
+  { value: "outro", label: "Outro" },
+]
+
+export function NovoProdutoDialog({
+  open,
+  onOpenChange,
+  onSuccess,
+}: NovoProdutoDialogProps) {
+  const [loading, setLoading] = useState(false)
+  const [form, setForm] = useState({
+    nome: "",
+    tipo: "outro" as TipoProduto,
+    quantidade: "0",
+  })
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setLoading(true)
+
+    try {
+      // Criar produto
+      const { data: produto } = await supabase
+        .from("produtos")
+        .insert({ nome: form.nome, tipo: form.tipo })
+        .select("id")
+        .single()
+
+      if (produto) {
+        // Criar estoque
+        const quantidade = parseInt(form.quantidade) || 0
+        await supabase.from("estoque").insert({
+          produto_id: produto.id,
+          quantidade_total: quantidade,
+          quantidade_disponivel: quantidade,
+          quantidade_limpeza: 0,
+        })
+      }
+
+      setForm({ nome: "", tipo: "outro", quantidade: "0" })
+      onOpenChange(false)
+      onSuccess()
+    } catch (error) {
+      console.error("Erro ao criar produto:", error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Novo Produto</DialogTitle>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="nome">Nome do Produto</Label>
+            <Input
+              id="nome"
+              value={form.nome}
+              onChange={(e) => setForm({ ...form, nome: e.target.value })}
+              placeholder="Ex: Jogo Mesa Redonda"
+              required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="tipo">Tipo</Label>
+            <Select
+              value={form.tipo}
+              onValueChange={(value) => setForm({ ...form, tipo: value as TipoProduto })}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {tiposProduto.map((tipo) => (
+                  <SelectItem key={tipo.value} value={tipo.value}>
+                    {tipo.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="quantidade">Quantidade Inicial</Label>
+            <Input
+              id="quantidade"
+              type="number"
+              value={form.quantidade}
+              onChange={(e) => setForm({ ...form, quantidade: e.target.value })}
+              min={0}
+            />
+          </div>
+
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={loading}>
+              {loading ? "Salvando..." : "Criar Produto"}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
