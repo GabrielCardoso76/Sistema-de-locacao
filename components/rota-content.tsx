@@ -9,6 +9,10 @@ import { supabase } from "@/lib/supabase"
 import type { Entrega } from "@/lib/database.types"
 import { format, parseISO } from "date-fns"
 import { ptBR } from "date-fns/locale"
+import { Calendar as CalendarIcon } from "lucide-react"
+import { Calendar } from "@/components/ui/calendar"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { cn } from "@/lib/utils"
 import { MapaWrapper } from "./mapa-wrapper"
 
 export function RotaContent() {
@@ -16,6 +20,7 @@ export function RotaContent() {
   const [loading, setLoading] = useState(true)
   const [selectedEntrega, setSelectedEntrega] = useState<Entrega | null>(null)
   const [rotaIniciada, setRotaIniciada] = useState(false)
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date())
   const [showMap, setShowMap] = useState(true)
 
   // Funcao para geocodificar endereco
@@ -36,9 +41,8 @@ export function RotaContent() {
 
   async function loadEntregas() {
     setLoading(true)
-    const hoje = new Date()
-    const inicioHoje = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate()).toISOString()
-    const fimHoje = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() + 1).toISOString()
+    const inicioHoje = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate()).toISOString()
+    const fimHoje = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate() + 1).toISOString()
 
     const { data } = await supabase
       .from("entregas")
@@ -73,7 +77,7 @@ export function RotaContent() {
 
   useEffect(() => {
     loadEntregas()
-  }, [])
+  }, [selectedDate])
 
   const handleSelectEntrega = useCallback((entrega: Entrega) => {
     setSelectedEntrega(entrega)
@@ -143,12 +147,36 @@ export function RotaContent() {
     <div className="space-y-6">
       {/* Cabecalho */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-4">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant={"outline"}
+                className={cn(
+                  "w-[240px] justify-start text-left font-normal",
+                  !selectedDate && "text-muted-foreground"
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {selectedDate ? format(selectedDate, "PPP", { locale: ptBR }) : <span>Selecione uma data</span>}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={(date) => date && setSelectedDate(date)}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
         <div>
           <p className="text-lg font-medium">
-            {format(new Date(), "EEEE, dd 'de' MMMM", { locale: ptBR })}
+            {format(selectedDate, "EEEE, dd 'de' MMMM", { locale: ptBR })}
           </p>
           <p className="text-muted-foreground">
-            {entregas.length} entrega{entregas.length !== 1 ? "s" : ""} para hoje
+            {entregas.length} entrega{entregas.length !== 1 ? "s" : ""} para este dia
           </p>
         </div>
         <div className="flex gap-2">
@@ -172,7 +200,7 @@ export function RotaContent() {
         <Card>
           <CardContent className="py-12 text-center">
             <MapPin className="mx-auto h-12 w-12 text-muted-foreground/50" />
-            <p className="mt-4 text-lg font-medium">Nenhuma entrega para hoje</p>
+            <p className="mt-4 text-lg font-medium">Nenhuma entrega para este dia</p>
             <p className="text-muted-foreground">
               As entregas agendadas aparecerao aqui
             </p>

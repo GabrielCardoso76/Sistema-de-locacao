@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Plus, Search, Calendar, Eye, Trash2 } from "lucide-react"
+import { Plus, Search, Calendar, Eye, Trash2, Pencil } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -11,6 +11,7 @@ import type { Entrega } from "@/lib/database.types"
 import { format, parseISO } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { NovoAgendamentoDialog } from "@/components/novo-agendamento-dialog"
+import { EditarAgendamentoDialog } from "@/components/editar-agendamento-dialog"
 import { DetalhesEntregaDialog } from "@/components/detalhes-entrega-dialog"
 import {
   AlertDialog,
@@ -40,6 +41,8 @@ export function AgendamentosContent() {
   const [selectedEntrega, setSelectedEntrega] = useState<Entrega | null>(null)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [entregaToDelete, setEntregaToDelete] = useState<Entrega | null>(null)
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [entregaToEdit, setEntregaToEdit] = useState<Entrega | null>(null)
 
   async function loadEntregas() {
     setLoading(true)
@@ -187,6 +190,17 @@ export function AgendamentosContent() {
                     <Button
                       variant="outline"
                       size="sm"
+                      className="text-primary hover:bg-primary hover:text-primary-foreground"
+                      onClick={() => {
+                        setEntregaToEdit(entrega)
+                        setEditDialogOpen(true)
+                      }}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
                       className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
                       onClick={() => {
                         setEntregaToDelete(entrega)
@@ -207,6 +221,13 @@ export function AgendamentosContent() {
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         onSuccess={loadEntregas}
+      />
+
+      <EditarAgendamentoDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        onSuccess={loadEntregas}
+        entrega={entregaToEdit}
       />
 
       <DetalhesEntregaDialog
