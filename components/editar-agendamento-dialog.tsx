@@ -48,6 +48,7 @@ export function EditarAgendamentoDialog({
     nome: "",
     telefone: "",
     endereco: "",
+    numero: "",
     dataEntrega: "",
     horaEntrega: "",
     dataRetirada: "",
@@ -66,6 +67,7 @@ export function EditarAgendamentoDialog({
         nome: entrega.cliente?.nome || "",
         telefone: entrega.cliente?.telefone || "",
         endereco: entrega.endereco || "",
+        numero: entrega.numero || "",
         dataEntrega: entrega.data_entrega ? format(parseISO(entrega.data_entrega), "yyyy-MM-dd") : "",
         horaEntrega: entrega.data_entrega ? format(parseISO(entrega.data_entrega), "HH:mm") : "",
         dataRetirada: entrega.data_retirada ? format(parseISO(entrega.data_retirada), "yyyy-MM-dd") : "",
@@ -110,22 +112,77 @@ export function EditarAgendamentoDialog({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!entrega) return
+
+    if (!form.dataEntrega || !form.dataRetirada || itens.length === 0) {
+      alert("Preencha as datas e adicione pelo menos um item.")
+      return
+    }
+
     setLoading(true)
 
     try {
+      // Validar disponibilidade de estoque no periodo (ignorando a própria entrega)
+      const dataEntregaISO = new Date(`${form.dataEntrega}T${form.horaEntrega}`).toISOString()
+      const dataRetiradaISO = new Date(`${form.dataRetirada}T${form.horaRetirada}`).toISOString()
+
+      const { data: entregasNoPeriodo } = await supabase
+        .from('itens_entrega')
+        .select(`
+          entrega_id,
+          produto_id,
+          quantidade,
+          entregas!inner(
+            data_entrega,
+            data_retirada,
+            status
+          )
+        `)
+        .lte('entregas.data_entrega', dataRetiradaISO)
+        .gte('entregas.data_retirada', dataEntregaISO)
+        .neq('entregas.status', 'cancelada')
+        .neq('entregas.status', 'retirada')
+
+      const reservadosMap = new Map<string, number>()
+      entregasNoPeriodo?.forEach((item: any) => {
+        // ignora os itens da propria entrega que está sendo editada
+        if (item.entrega_id === entrega.id) return;
+
+        const atual = reservadosMap.get(item.produto_id) || 0
+        reservadosMap.set(item.produto_id, atual + item.quantidade)
+      })
+
+      // Checar contra o estoque total de cada item selecionado
+      for (const item of itens) {
+        if (!item.produto_id) continue;
+
+        const produtoEstoque = produtos.find(p => p.produto_id === item.produto_id)
+        if (!produtoEstoque) continue;
+
+        const qtdReservada = reservadosMap.get(item.produto_id) || 0
+        const disponivel = produtoEstoque.quantidade_total - qtdReservada
+
+        if (item.quantidade > disponivel) {
+          alert(`Estoque insuficiente para ${produtoEstoque.produto.nome} neste período.\n\nDisponível calculado: ${disponivel}\nSolicitado: ${item.quantidade}`)
+          setLoading(false)
+          return
+        }
+      }
+
       // Atualizar ou buscar cliente
       let clienteId = entrega.cliente_id
 
-      if (form.telefone !== entrega.cliente?.telefone) {
-        const { data: existingCliente } = await supabase
+      if (form.telefone !== entrega.cliente?.telefone || form.nome !== entrega.cliente?.nome) {
+        const { data: existingClientes } = await supabase
           .from("clientes")
-          .select("id")
+          .select("id, nome")
           .eq("telefone", form.telefone)
-          .single()
 
-        if (existingCliente) {
-          clienteId = existingCliente.id
+        const exactMatch = existingClientes?.find(c => c.nome.toLowerCase() === form.nome.toLowerCase())
+
+        if (exactMatch) {
+          clienteId = exactMatch.id
         } else {
+          // Criar novo cliente se nome diferente ou telefone não existe
           const { data: newCliente } = await supabase
             .from("clientes")
             .insert({ nome: form.nome, telefone: form.telefone })
@@ -134,11 +191,6 @@ export function EditarAgendamentoDialog({
           if(newCliente) clienteId = newCliente.id
         }
       }
-
-      await supabase
-          .from("clientes")
-          .update({ nome: form.nome, telefone: form.telefone })
-          .eq("id", clienteId)
 
       // Atualizar entrega
       const dataEntrega = new Date(`${form.dataEntrega}T${form.horaEntrega}`)
@@ -149,6 +201,7 @@ export function EditarAgendamentoDialog({
         .update({
           cliente_id: clienteId,
           endereco: form.endereco,
+          numero: form.numero || null,
           data_entrega: dataEntrega.toISOString(),
           data_retirada: dataRetirada.toISOString(),
           observacoes: form.observacoes || null,
@@ -215,15 +268,26 @@ export function EditarAgendamentoDialog({
                 />
               </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="endereco">Endereço Completo</Label>
-              <Input
-                id="endereco"
-                value={form.endereco}
-                onChange={(e) => setForm({ ...form, endereco: e.target.value })}
-                placeholder="Rua, número, bairro, cidade"
-                required
-              />
+            <div className="grid gap-4 sm:grid-cols-4">
+              <div className="space-y-2 sm:col-span-3">
+                <Label htmlFor="endereco">Endereço</Label>
+                <Input
+                  id="endereco"
+                  value={form.endereco}
+                  onChange={(e) => setForm({ ...form, endereco: e.target.value })}
+                  placeholder="Rua, bairro, cidade"
+                  required
+                />
+              </div>
+              <div className="space-y-2 sm:col-span-1">
+                <Label htmlFor="numero">Número</Label>
+                <Input
+                  id="numero"
+                  value={form.numero}
+                  onChange={(e) => setForm({ ...form, numero: e.target.value })}
+                  placeholder="S/N"
+                />
+              </div>
             </div>
           </div>
 

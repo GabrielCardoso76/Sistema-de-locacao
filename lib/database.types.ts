@@ -29,6 +29,7 @@ export interface Entrega {
   id: string
   cliente_id: string
   endereco: string
+  numero: string | null
   latitude: number | null
   longitude: number | null
   data_entrega: string
@@ -69,8 +70,8 @@ export interface Database {
       }
       entregas: {
         Row: Entrega
-        Insert: Omit<Entrega, 'id' | 'created_at'>
-        Update: Partial<Omit<Entrega, 'id' | 'created_at'>>
+        Insert: Omit<Entrega, 'id' | 'created_at'> & { numero?: string | null }
+        Update: Partial<Omit<Entrega, 'id' | 'created_at'> & { numero?: string | null }>
       }
       itens_entrega: {
         Row: ItemEntrega

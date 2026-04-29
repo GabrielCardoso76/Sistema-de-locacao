@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { supabase } from "@/lib/supabase"
-import type { Entrega } from "@/lib/database.types"
+import type { Entrega, Cliente, ItemEntrega, Produto } from "@/lib/database.types"
 import { format, parseISO } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { Calendar as CalendarIcon } from "lucide-react"
@@ -168,7 +168,7 @@ export function RotaContent() {
                 {selectedDate ? format(selectedDate, "PPP", { locale: ptBR }) : <span>Selecione uma data</span>}
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
+            <PopoverContent className="w-auto p-0 z-[9999]" align="start">
               <Calendar
                 mode="single"
                 selected={selectedDate}

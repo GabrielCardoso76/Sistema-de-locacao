@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Calendar, Home, MapPin, Package, Menu, X } from "lucide-react"
+import { Calendar, Home, MapPin, Package, Settings, Menu, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { useState } from "react"
@@ -10,8 +10,9 @@ import { useState } from "react"
 const navItems = [
   { href: "/", label: "Dashboard", icon: Home },
   { href: "/agendamentos", label: "Agendamentos", icon: Calendar },
-  { href: "/estoque", label: "Estoque", icon: Package },
+  { href: "/estoque", label: "TS Locações", icon: Package },
   { href: "/rota", label: "Rota do Dia", icon: MapPin },
+  { href: "/configuracoes", label: "Configurações", icon: Settings },
 ]
 
 export function AppSidebar() {
