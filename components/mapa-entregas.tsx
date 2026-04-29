@@ -123,8 +123,8 @@ export default function MapaEntregas({ entregas, selectedEntrega, onSelectEntreg
   return (
     <div 
       ref={mapContainerRef} 
-      className="h-full w-full rounded-lg"
-      style={{ minHeight: "400px" }}
+      className="h-[400px] w-full min-h-[400px] sm:h-full rounded-lg"
+      style={{ zIndex: 0 }}
     />
   )
 }

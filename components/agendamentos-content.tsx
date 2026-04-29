@@ -95,6 +95,13 @@ export function AgendamentosContent() {
     }
   }
 
+  function getPaymentBadge(pago: boolean) {
+    if (pago) {
+      return <Badge className="bg-green-600 hover:bg-green-700 text-white">Pago</Badge>
+    }
+    return <Badge className="bg-amber-500 hover:bg-amber-600 text-white">Pendente</Badge>
+  }
+
   return (
     <div className="space-y-6">
       {/* Ações e Filtros */}
@@ -155,6 +162,7 @@ export function AgendamentosContent() {
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
                       <p className="font-medium">{entrega.cliente?.nome}</p>
+                      {getPaymentBadge(entrega.pago)}
                       {getStatusBadge(entrega.status)}
                     </div>
                     <p className="text-sm text-muted-foreground">{entrega.endereco}</p>

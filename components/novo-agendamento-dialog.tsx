@@ -52,6 +52,8 @@ export function NovoAgendamentoDialog({
     dataRetirada: "",
     horaRetirada: "",
     observacoes: "",
+    frete: "10.00",
+    pago: false,
   })
 
   useEffect(() => {
@@ -80,6 +82,26 @@ export function NovoAgendamentoDialog({
   function removeItem(index: number) {
     setItens(itens.filter((_, i) => i !== index))
   }
+
+  function addKitJogo() {
+    const jogo = produtos.find((p) => p.produto.tipo === 'jogo_mesa_cadeira')
+    if (jogo) {
+      setItens([...itens, { produto_id: jogo.produto_id, quantidade: 1 }])
+    } else {
+      alert("Nenhum produto do tipo 'Jogo Mesa + Cadeiras' encontrado no estoque.")
+    }
+  }
+
+  const subtotal = itens.reduce((acc, item) => {
+    const produto = produtos.find(p => p.produto_id === item.produto_id)
+    if (produto && item.quantidade) {
+      return acc + (produto.produto.preco_unitario * item.quantidade)
+    }
+    return acc
+  }, 0)
+
+  const frete = parseFloat(form.frete) || 0
+  const total = subtotal + frete
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -119,7 +141,8 @@ export function NovoAgendamentoDialog({
         reservadosMap.set(item.produto_id, atual + item.quantidade)
       })
 
-      // Checar contra o estoque total de cada item selecionado
+      // Checar contra o estoque total de cada item selecionado (Trava Desativada Temporariamente)
+      /*
       for (const item of itens) {
         if (!item.produto_id) continue;
 
@@ -135,6 +158,7 @@ export function NovoAgendamentoDialog({
           return
         }
       }
+      */
 
       // Criar ou buscar cliente
       let clienteId: string
@@ -172,6 +196,9 @@ export function NovoAgendamentoDialog({
           data_retirada: dataRetirada.toISOString(),
           status: "agendada",
           observacoes: form.observacoes || null,
+          valor_frete: frete,
+          valor_total: total,
+          pago: form.pago,
         })
         .select("id")
         .single()
@@ -202,6 +229,8 @@ export function NovoAgendamentoDialog({
         dataRetirada: "",
         horaRetirada: "",
         observacoes: "",
+        frete: "10.00",
+        pago: false,
       })
       setItens([])
       onOpenChange(false)
@@ -319,10 +348,16 @@ export function NovoAgendamentoDialog({
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="font-medium">Itens</h3>
-              <Button type="button" variant="outline" size="sm" onClick={addItem}>
-                <Plus className="mr-2 h-4 w-4" />
-                Adicionar Item
-              </Button>
+              <div className="flex gap-2">
+                <Button type="button" variant="secondary" size="sm" onClick={addKitJogo}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Kit Jogo (1 Mesa + 4 Cad.)
+                </Button>
+                <Button type="button" variant="outline" size="sm" onClick={addItem}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Adicionar Item
+                </Button>
+              </div>
             </div>
             {itens.length === 0 ? (
               <p className="text-sm text-muted-foreground">
@@ -393,6 +428,54 @@ export function NovoAgendamentoDialog({
                 ))}
               </div>
             )}
+          </div>
+
+          {/* Valores e Pagamento */}
+          <div className="space-y-4 rounded-lg border p-4 bg-muted/50">
+            <h3 className="font-medium">Valores e Pagamento</h3>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Subtotal</Label>
+                <div className="text-lg font-semibold">
+                  R$ {subtotal.toFixed(2)}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="frete">Frete (R$)</Label>
+                <Input
+                  id="frete"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={form.frete}
+                  onChange={(e) => setForm({ ...form, frete: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between pt-4 border-t">
+              <div className="space-y-1">
+                <Label>Total da Locação</Label>
+                <div className="text-2xl font-bold text-primary">
+                  R$ {total.toFixed(2)}
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="pago"
+                  checked={form.pago}
+                  onChange={(e) => setForm({ ...form, pago: e.target.checked })}
+                  className="h-5 w-5 rounded border-gray-300 text-primary focus:ring-primary"
+                />
+                <Label htmlFor="pago" className="text-base cursor-pointer">
+                  Pedido Pago
+                </Label>
+              </div>
+            </div>
           </div>
 
           {/* Observações */}

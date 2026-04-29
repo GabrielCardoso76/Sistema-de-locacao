@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState, useCallback } from "react"
-import { MapPin, Navigation, Phone, Package, GripVertical, Play, CheckCircle, Map } from "lucide-react"
+import { MapPin, Navigation, Phone, Package, GripVertical, Play, CheckCircle, Map, Copy } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -260,14 +260,36 @@ export function RotaContent() {
                     </a>
                   </div>
 
+                  <div className="flex gap-2">
+                    {selectedEntrega.pago ? (
+                      <Badge className="bg-green-600 text-white hover:bg-green-700">Pago</Badge>
+                    ) : (
+                      <Badge className="bg-amber-500 text-white hover:bg-amber-600">Pendente</Badge>
+                    )}
+                  </div>
+
                   {/* Endereco */}
                   <div className="rounded-lg bg-muted p-3">
-                    <div className="flex items-start gap-2">
-                      <MapPin className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                      <p className="text-sm">
-                        {selectedEntrega.endereco}
-                        {selectedEntrega.numero && `, ${selectedEntrega.numero}`}
-                      </p>
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-start gap-2">
+                        <MapPin className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                        <p className="text-sm">
+                          {selectedEntrega.endereco}
+                          {selectedEntrega.numero && `, ${selectedEntrega.numero}`}
+                        </p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 text-muted-foreground hover:text-foreground"
+                        onClick={() => {
+                          const fullAddress = `${selectedEntrega.endereco}${selectedEntrega.numero ? `, ${selectedEntrega.numero}` : ''}`;
+                          navigator.clipboard.writeText(fullAddress);
+                        }}
+                        title="Copiar Endereço"
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
 
@@ -357,12 +379,19 @@ export function RotaContent() {
                         {format(parseISO(entrega.data_entrega), "HH:mm")}
                       </p>
                     </div>
-                    <Badge 
-                      variant={entrega.status === "em_rota" ? "default" : "secondary"}
-                      className="text-xs"
-                    >
-                      {entrega.status === "em_rota" ? "Em Rota" : "Agendada"}
-                    </Badge>
+                    <div className="flex flex-col gap-1 items-end">
+                      {entrega.pago ? (
+                        <Badge className="bg-green-600 text-white hover:bg-green-700 text-[10px] px-1 py-0 h-4">Pago</Badge>
+                      ) : (
+                        <Badge className="bg-amber-500 text-white hover:bg-amber-600 text-[10px] px-1 py-0 h-4">Pendente</Badge>
+                      )}
+                      <Badge
+                        variant={entrega.status === "em_rota" ? "default" : "secondary"}
+                        className="text-xs"
+                      >
+                        {entrega.status === "em_rota" ? "Em Rota" : "Agendada"}
+                      </Badge>
+                    </div>
                   </div>
                 ))}
 
