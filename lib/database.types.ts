@@ -1,10 +1,8 @@
-export type TipoProduto = 'jogo_mesa_cadeira' | 'mesa_avulsa' | 'pista_comida' | 'toalha' | 'outro'
 export type StatusEntrega = 'agendada' | 'em_rota' | 'entregue' | 'retirada'
 
 export interface Produto {
   id: string
   nome: string
-  tipo: TipoProduto
   preco_unitario: number
   created_at: string
 }
@@ -31,6 +29,7 @@ export interface Entrega {
   cliente_id: string
   endereco: string
   numero: string | null
+  cidade: string | null
   latitude: number | null
   longitude: number | null
   data_entrega: string
@@ -74,8 +73,8 @@ export interface Database {
       }
       entregas: {
         Row: Entrega
-        Insert: Omit<Entrega, 'id' | 'created_at'> & { numero?: string | null }
-        Update: Partial<Omit<Entrega, 'id' | 'created_at'> & { numero?: string | null }>
+        Insert: Omit<Entrega, 'id' | 'created_at'> & { numero?: string | null, cidade?: string | null }
+        Update: Partial<Omit<Entrega, 'id' | 'created_at'> & { numero?: string | null, cidade?: string | null }>
       }
       itens_entrega: {
         Row: ItemEntrega
