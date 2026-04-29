@@ -46,6 +46,7 @@ export function NovoAgendamentoDialog({
     nome: "",
     telefone: "",
     endereco: "",
+    numero: "",
     dataEntrega: "",
     horaEntrega: "",
     dataRetirada: "",
@@ -82,26 +83,73 @@ export function NovoAgendamentoDialog({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+
+    // Validar datas e itens
+    if (!form.dataEntrega || !form.dataRetirada || itens.length === 0) {
+      alert("Preencha as datas e adicione pelo menos um item.")
+      return
+    }
+
     setLoading(true)
 
     try {
+      // Validar disponibilidade de estoque no periodo
+      const dataEntregaISO = new Date(`${form.dataEntrega}T${form.horaEntrega}`).toISOString()
+      const dataRetiradaISO = new Date(`${form.dataRetirada}T${form.horaRetirada}`).toISOString()
+
+      const { data: entregasNoPeriodo } = await supabase
+        .from('itens_entrega')
+        .select(`
+          produto_id,
+          quantidade,
+          entregas!inner(
+            data_entrega,
+            data_retirada,
+            status
+          )
+        `)
+        .lte('entregas.data_entrega', dataRetiradaISO)
+        .gte('entregas.data_retirada', dataEntregaISO)
+        .neq('entregas.status', 'cancelada')
+        .neq('entregas.status', 'retirada')
+
+      const reservadosMap = new Map<string, number>()
+      entregasNoPeriodo?.forEach((item: any) => {
+        const atual = reservadosMap.get(item.produto_id) || 0
+        reservadosMap.set(item.produto_id, atual + item.quantidade)
+      })
+
+      // Checar contra o estoque total de cada item selecionado
+      for (const item of itens) {
+        if (!item.produto_id) continue;
+
+        const produtoEstoque = produtos.find(p => p.produto_id === item.produto_id)
+        if (!produtoEstoque) continue;
+
+        const qtdReservada = reservadosMap.get(item.produto_id) || 0
+        const disponivel = produtoEstoque.quantidade_total - qtdReservada
+
+        if (item.quantidade > disponivel) {
+          alert(`Estoque insuficiente para ${produtoEstoque.produto.nome} neste período.\n\nDisponível calculado: ${disponivel}\nSolicitado: ${item.quantidade}`)
+          setLoading(false)
+          return
+        }
+      }
+
       // Criar ou buscar cliente
       let clienteId: string
 
-      const { data: existingCliente } = await supabase
+      const { data: existingClientes } = await supabase
         .from("clientes")
-        .select("id")
+        .select("id, nome")
         .eq("telefone", form.telefone)
-        .single()
 
-      if (existingCliente) {
-        clienteId = existingCliente.id
-        // Atualizar nome se necessário
-        await supabase
-          .from("clientes")
-          .update({ nome: form.nome })
-          .eq("id", clienteId)
+      const exactMatch = existingClientes?.find(c => c.nome.toLowerCase() === form.nome.toLowerCase())
+
+      if (exactMatch) {
+        clienteId = exactMatch.id
       } else {
+        // Create new client if name is different or telephone doesn't exist
         const { data: newCliente } = await supabase
           .from("clientes")
           .insert({ nome: form.nome, telefone: form.telefone })
@@ -119,6 +167,7 @@ export function NovoAgendamentoDialog({
         .insert({
           cliente_id: clienteId,
           endereco: form.endereco,
+          numero: form.numero || null,
           data_entrega: dataEntrega.toISOString(),
           data_retirada: dataRetirada.toISOString(),
           status: "agendada",
@@ -147,6 +196,7 @@ export function NovoAgendamentoDialog({
         nome: "",
         telefone: "",
         endereco: "",
+        numero: "",
         dataEntrega: "",
         horaEntrega: "",
         dataRetirada: "",
@@ -195,15 +245,26 @@ export function NovoAgendamentoDialog({
                 />
               </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="endereco">Endereço Completo</Label>
-              <Input
-                id="endereco"
-                value={form.endereco}
-                onChange={(e) => setForm({ ...form, endereco: e.target.value })}
-                placeholder="Rua, número, bairro, cidade"
-                required
-              />
+            <div className="grid gap-4 sm:grid-cols-4">
+              <div className="space-y-2 sm:col-span-3">
+                <Label htmlFor="endereco">Endereço</Label>
+                <Input
+                  id="endereco"
+                  value={form.endereco}
+                  onChange={(e) => setForm({ ...form, endereco: e.target.value })}
+                  placeholder="Rua, bairro, cidade"
+                  required
+                />
+              </div>
+              <div className="space-y-2 sm:col-span-1">
+                <Label htmlFor="numero">Número</Label>
+                <Input
+                  id="numero"
+                  value={form.numero}
+                  onChange={(e) => setForm({ ...form, numero: e.target.value })}
+                  placeholder="S/N"
+                />
+              </div>
             </div>
           </div>
 

@@ -89,7 +89,9 @@ export default function MapaEntregas({ entregas, selectedEntrega, onSelectEntreg
           marker.bindPopup(`
             <div style="min-width: 150px;">
               <strong>${entrega.cliente?.nome || "Cliente"}</strong><br/>
-              <span style="color: #666; font-size: 12px;">${entrega.endereco}</span>
+              <span style="color: #666; font-size: 12px;">
+                ${entrega.endereco}${entrega.numero ? `, ${entrega.numero}` : ''}
+              </span>
             </div>
           `)
 
