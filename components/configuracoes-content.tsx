@@ -3,10 +3,18 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useUiScale } from "@/components/ui-scale-provider"
-import { ZoomIn, ZoomOut, Monitor } from "lucide-react"
+import { ZoomIn, ZoomOut, Monitor, Moon, Sun } from "lucide-react"
+import { useTheme } from "next-themes"
+import { useEffect, useState } from "react"
 
 export function ConfiguracoesContent() {
   const { scale, setScale } = useUiScale()
+  const { theme, setTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const increaseScale = () => setScale(Math.min(scale + 1, 24))
   const decreaseScale = () => setScale(Math.max(scale - 1, 12))
@@ -57,6 +65,35 @@ export function ConfiguracoesContent() {
               >
                 <ZoomIn className="h-4 w-4" />
                 <span className="sr-only">Aumentar</span>
+              </Button>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4 pt-4 border-t">
+            <div className="flex-1">
+              <h3 className="text-sm font-medium">Tema Visual</h3>
+              <p className="text-sm text-muted-foreground">
+                Alternar entre os modos Claro e Escuro
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant={theme === "light" ? "default" : "outline"}
+                onClick={() => setTheme("light")}
+                className="w-24"
+                disabled={!mounted}
+              >
+                <Sun className="mr-2 h-4 w-4" />
+                Claro
+              </Button>
+              <Button
+                variant={theme === "dark" ? "default" : "outline"}
+                onClick={() => setTheme("dark")}
+                className="w-24"
+                disabled={!mounted}
+              >
+                <Moon className="mr-2 h-4 w-4" />
+                Escuro
               </Button>
             </div>
           </div>

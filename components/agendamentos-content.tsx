@@ -160,12 +160,29 @@ export function AgendamentosContent() {
                   className="flex flex-col gap-4 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <p className="font-medium">{entrega.cliente?.nome}</p>
-                      {getPaymentBadge(entrega.pago)}
-                      {getStatusBadge(entrega.status)}
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium">{entrega.cliente?.nome}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {entrega.cliente?.telefone}
+                        </p>
+                        <a
+                          href={`https://api.whatsapp.com/send?phone=55${entrega.cliente?.telefone?.replace(/\D/g, "")}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-green-600 hover:underline font-medium ml-2"
+                        >
+                          WhatsApp
+                        </a>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {getPaymentBadge(entrega.pago)}
+                        {getStatusBadge(entrega.status)}
+                      </div>
                     </div>
-                    <p className="text-sm text-muted-foreground">{entrega.endereco}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {entrega.endereco}{entrega.numero && `, ${entrega.numero}`}{entrega.cidade && ` - ${entrega.cidade}`}
+                    </p>
                     <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
                       <span>
                         Entrega: {format(parseISO(entrega.data_entrega), "dd/MM/yyyy HH:mm", { locale: ptBR })}

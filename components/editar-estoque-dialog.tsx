@@ -34,6 +34,7 @@ export function EditarEstoqueDialog({
     quantidade_total: 0,
     quantidade_disponivel: 0,
     quantidade_limpeza: 0,
+    preco_unitario: "0",
   })
 
   useEffect(() => {
@@ -42,6 +43,7 @@ export function EditarEstoqueDialog({
         quantidade_total: estoque.quantidade_total,
         quantidade_disponivel: estoque.quantidade_disponivel,
         quantidade_limpeza: estoque.quantidade_limpeza,
+        preco_unitario: estoque.produto.preco_unitario?.toString() || "0",
       })
     }
   }, [estoque])
@@ -55,6 +57,9 @@ export function EditarEstoqueDialog({
     setLoading(true)
 
     try {
+      const preco = parseFloat(form.preco_unitario.replace(",", ".")) || 0
+
+      // Atualizar o estoque
       await supabase
         .from("estoque")
         .update({
@@ -63,6 +68,14 @@ export function EditarEstoqueDialog({
           quantidade_limpeza: form.quantidade_limpeza,
         })
         .eq("id", estoque!.id)
+
+      // Atualizar o preço unitário do produto
+      await supabase
+        .from("produtos")
+        .update({
+          preco_unitario: preco
+        })
+        .eq("id", estoque!.produto_id)
 
       onOpenChange(false)
       onSuccess()
@@ -73,7 +86,7 @@ export function EditarEstoqueDialog({
     }
   }
 
-  function adjustValue(field: keyof typeof form, delta: number) {
+  function adjustValue(field: "quantidade_total" | "quantidade_disponivel" | "quantidade_limpeza", delta: number) {
     const newValue = Math.max(0, form[field] + delta)
     setForm({ ...form, [field]: newValue })
   }
@@ -108,6 +121,18 @@ export function EditarEstoqueDialog({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-2">
+            <Label htmlFor="preco_unitario">Preço Unitário (R$)</Label>
+            <Input
+              id="preco_unitario"
+              type="number"
+              step="0.01"
+              min="0"
+              value={form.preco_unitario}
+              onChange={(e) => setForm({ ...form, preco_unitario: e.target.value })}
+            />
+          </div>
+
           {/* Quantidade Total */}
           <div className="space-y-2">
             <Label>Quantidade Total</Label>

@@ -16,12 +16,37 @@ import { cn } from "@/lib/utils"
 import { MapaWrapper } from "./mapa-wrapper"
 
 export function RotaContent() {
-  const [entregas, setEntregas] = useState<Entrega[]>([])
+  const [entregas, setEntregas] = useState<(Entrega & { isRetirada?: boolean })[]>([])
   const [loading, setLoading] = useState(true)
-  const [selectedEntrega, setSelectedEntrega] = useState<Entrega | null>(null)
+  const [selectedEntrega, setSelectedEntrega] = useState<(Entrega & { isRetirada?: boolean }) | null>(null)
   const [rotaIniciada, setRotaIniciada] = useState(false)
   const [selectedDate, setSelectedDate] = useState<Date>(new Date())
   const [showMap, setShowMap] = useState(true)
+  const [filtroTipo, setFiltroTipo] = useState<"todos" | "entregas" | "retiradas">("todos")
+
+  async function togglePago(entrega: Entrega & { isRetirada?: boolean }) {
+    await supabase
+      .from("entregas")
+      .update({ pago: !entrega.pago })
+      .eq("id", entrega.id)
+
+    // Update local state without fetching all deliveries again to avoid jitter
+    setEntregas(entregas.map(e => {
+      if (e.id === entrega.id) {
+        return { ...e, pago: !e.pago }
+      }
+      return e
+    }))
+
+    if (selectedEntrega?.id === entrega.id) {
+      setSelectedEntrega({ ...selectedEntrega, pago: !entrega.pago })
+    }
+  }
+
+  function copyAddress(entrega: Entrega) {
+    const address = `${entrega.endereco}${entrega.numero ? `, ${entrega.numero}` : ''}${entrega.cidade ? ` - ${entrega.cidade}` : ''}`
+    navigator.clipboard.writeText(address)
+  }
 
   // Funcao para geocodificar endereco
   async function geocodeAddress(address: string): Promise<{ lat: number; lng: number } | null> {
@@ -44,18 +69,42 @@ export function RotaContent() {
     const inicioHoje = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate()).toISOString()
     const fimHoje = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate() + 1).toISOString()
 
-    const { data } = await supabase
-      .from("entregas")
-      .select("*, cliente:clientes(*), itens:itens_entrega(*, produto:produtos(*))")
-      .gte("data_entrega", inicioHoje)
-      .lt("data_entrega", fimHoje)
-      .in("status", ["agendada", "em_rota"])
-      .order("ordem_rota", { ascending: true, nullsFirst: false })
-      .order("data_entrega", { ascending: true })
+    const [entregasResult, retiradasResult] = await Promise.all([
+      // Fetch entregas
+      supabase
+        .from("entregas")
+        .select("*, cliente:clientes(*), itens:itens_entrega(*, produto:produtos(*))")
+        .gte("data_entrega", inicioHoje)
+        .lt("data_entrega", fimHoje)
+        .in("status", ["agendada", "em_rota"]),
+
+      // Fetch retiradas
+      supabase
+        .from("entregas")
+        .select("*, cliente:clientes(*), itens:itens_entrega(*, produto:produtos(*))")
+        .gte("data_retirada", inicioHoje)
+        .lt("data_retirada", fimHoje)
+        .eq("status", "entregue")
+    ])
+
+    const entregasData = (entregasResult.data || []).map(e => ({ ...e, isRetirada: false }))
+    const retiradasData = (retiradasResult.data || []).map(e => ({ ...e, isRetirada: true }))
+
+    const combinedData = [...entregasData, ...retiradasData].sort((a, b) => {
+      // First, sort by order if it exists for the specific action type
+      if (a.ordem_rota !== null && b.ordem_rota !== null && a.isRetirada === b.isRetirada) {
+        return a.ordem_rota - b.ordem_rota
+      }
+
+      // Otherwise, sort by time
+      const dateA = a.isRetirada ? new Date(a.data_retirada) : new Date(a.data_entrega)
+      const dateB = b.isRetirada ? new Date(b.data_retirada) : new Date(b.data_entrega)
+      return dateA.getTime() - dateB.getTime()
+    })
 
     // Geocodificar entregas que nao tem coordenadas
     const entregasComCoordenadas = await Promise.all(
-      (data || []).map(async (entrega) => {
+      combinedData.map(async (entrega) => {
         if (!entrega.latitude || !entrega.longitude) {
           const enderecoCompleto = entrega.numero 
             ? `${entrega.endereco}, ${entrega.numero}`
@@ -101,13 +150,15 @@ export function RotaContent() {
     loadEntregas()
   }
 
-  async function marcarEntregue(entregaId: string) {
+  async function marcarEntregue(entrega: Entrega & { isRetirada?: boolean }) {
+    const newStatus = entrega.isRetirada ? "retirada" : "entregue"
+
     await supabase
       .from("entregas")
-      .update({ status: "entregue" })
-      .eq("id", entregaId)
+      .update({ status: newStatus })
+      .eq("id", entrega.id)
 
-    const currentIndex = entregas.findIndex((e) => e.id === entregaId)
+    const currentIndex = entregas.findIndex((e) => e.id === entrega.id)
     const nextEntrega = entregas[currentIndex + 1]
     
     if (nextEntrega) {
@@ -203,6 +254,30 @@ export function RotaContent() {
         </div>
       </div>
 
+      <div className="flex flex-wrap gap-2">
+        <Button
+          variant={filtroTipo === "todos" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setFiltroTipo("todos")}
+        >
+          Ver Todos (Misto)
+        </Button>
+        <Button
+          variant={filtroTipo === "entregas" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setFiltroTipo("entregas")}
+        >
+          Apenas Entregas
+        </Button>
+        <Button
+          variant={filtroTipo === "retiradas" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setFiltroTipo("retiradas")}
+        >
+          Apenas Retiradas
+        </Button>
+      </div>
+
       {entregas.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
@@ -251,21 +326,41 @@ export function RotaContent() {
                   {/* Cliente */}
                   <div>
                     <p className="text-lg font-bold">{selectedEntrega.cliente?.nome}</p>
-                    <a
-                      href={`tel:${selectedEntrega.cliente?.telefone?.replace(/\D/g, "")}`}
-                      className="flex items-center gap-2 text-sm text-primary hover:underline"
-                    >
-                      <Phone className="h-3 w-3" />
-                      {selectedEntrega.cliente?.telefone}
-                    </a>
+                    <div className="flex gap-4 items-center">
+                      <a
+                        href={`tel:${selectedEntrega.cliente?.telefone?.replace(/\D/g, "")}`}
+                        className="flex items-center gap-2 text-sm text-primary hover:underline"
+                      >
+                        <Phone className="h-3 w-3" />
+                        {selectedEntrega.cliente?.telefone}
+                      </a>
+                      <a
+                        href={`https://api.whatsapp.com/send?phone=55${selectedEntrega.cliente?.telefone?.replace(/\D/g, "")}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-sm text-green-600 hover:underline font-medium"
+                      >
+                        WhatsApp
+                      </a>
+                    </div>
                   </div>
 
-                  <div className="flex gap-2">
-                    {selectedEntrega.pago ? (
-                      <Badge className="bg-green-600 text-white hover:bg-green-700">Pago</Badge>
-                    ) : (
-                      <Badge className="bg-amber-500 text-white hover:bg-amber-600">Pendente</Badge>
-                    )}
+                  <div className="flex gap-2 items-center">
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 px-2 text-xs"
+                        onClick={() => togglePago(selectedEntrega)}
+                      >
+                        Marcar como {selectedEntrega.pago ? "Pendente" : "Pago"}
+                      </Button>
+                      {selectedEntrega.pago ? (
+                        <Badge className="bg-green-600 text-white hover:bg-green-700">Pago</Badge>
+                      ) : (
+                        <Badge className="bg-amber-500 text-white hover:bg-amber-600">Pendente</Badge>
+                      )}
+                    </div>
                   </div>
 
                   {/* Endereco */}
@@ -276,16 +371,14 @@ export function RotaContent() {
                         <p className="text-sm">
                           {selectedEntrega.endereco}
                           {selectedEntrega.numero && `, ${selectedEntrega.numero}`}
+                          {selectedEntrega.cidade && ` - ${selectedEntrega.cidade}`}
                         </p>
                       </div>
                       <Button
                         variant="ghost"
                         size="icon"
                         className="h-6 w-6 text-muted-foreground hover:text-foreground"
-                        onClick={() => {
-                          const fullAddress = `${selectedEntrega.endereco}${selectedEntrega.numero ? `, ${selectedEntrega.numero}` : ''}`;
-                          navigator.clipboard.writeText(fullAddress);
-                        }}
+                        onClick={() => copyAddress(selectedEntrega)}
                         title="Copiar Endereço"
                       >
                         <Copy className="h-4 w-4" />
@@ -337,10 +430,10 @@ export function RotaContent() {
                       <Button
                         variant="outline"
                         className="w-full border-green-500 text-green-600 hover:bg-green-500 hover:text-white"
-                        onClick={() => marcarEntregue(selectedEntrega.id)}
+                        onClick={() => marcarEntregue(selectedEntrega)}
                       >
                         <CheckCircle className="mr-2 h-4 w-4" />
-                        Marcar Entregue
+                        {selectedEntrega.isRetirada ? "Marcar Retirada" : "Marcar Entregue"}
                       </Button>
                     )}
                   </div>
@@ -357,9 +450,13 @@ export function RotaContent() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                {entregas.map((entrega, index) => (
+                {entregas.filter(e => {
+                  if (filtroTipo === 'entregas') return !e.isRetirada;
+                  if (filtroTipo === 'retiradas') return e.isRetirada;
+                  return true;
+                }).map((entrega, index) => (
                   <div
-                    key={entrega.id}
+                    key={`${entrega.id}-${entrega.isRetirada ? 'retirada' : 'entrega'}`}
                     className={`flex items-center gap-2 rounded-lg border p-3 transition-colors cursor-pointer ${
                       selectedEntrega?.id === entrega.id
                         ? "border-primary bg-primary/5"
@@ -374,17 +471,28 @@ export function RotaContent() {
                       {index + 1}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm truncate">{entrega.cliente?.nome}</p>
+                      <p className="font-medium text-sm truncate">
+                        {entrega.isRetirada ? "(Retirada) " : ""}{entrega.cliente?.nome}
+                      </p>
                       <p className="text-xs text-muted-foreground">
-                        {format(parseISO(entrega.data_entrega), "HH:mm")}
+                        {format(parseISO(entrega.isRetirada ? entrega.data_retirada : entrega.data_entrega), "HH:mm")}
                       </p>
                     </div>
                     <div className="flex flex-col gap-1 items-end">
-                      {entrega.pago ? (
-                        <Badge className="bg-green-600 text-white hover:bg-green-700 text-[10px] px-1 py-0 h-4">Pago</Badge>
-                      ) : (
-                        <Badge className="bg-amber-500 text-white hover:bg-amber-600 text-[10px] px-1 py-0 h-4">Pendente</Badge>
-                      )}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          togglePago(entrega)
+                        }}
+                        className="focus:outline-none"
+                        title="Alternar pagamento"
+                      >
+                        {entrega.pago ? (
+                          <Badge className="bg-green-600 text-white hover:bg-green-700 text-[10px] px-1 py-0 h-4 cursor-pointer">Pago</Badge>
+                        ) : (
+                          <Badge className="bg-amber-500 text-white hover:bg-amber-600 text-[10px] px-1 py-0 h-4 cursor-pointer">Pendente</Badge>
+                        )}
+                      </button>
                       <Badge
                         variant={entrega.status === "em_rota" ? "default" : "secondary"}
                         className="text-xs"

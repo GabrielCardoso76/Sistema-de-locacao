@@ -49,6 +49,7 @@ export function EditarAgendamentoDialog({
     telefone: "",
     endereco: "",
     numero: "",
+    cidade: "São Carlos",
     dataEntrega: "",
     horaEntrega: "",
     dataRetirada: "",
@@ -70,6 +71,7 @@ export function EditarAgendamentoDialog({
         telefone: entrega.cliente?.telefone || "",
         endereco: entrega.endereco || "",
         numero: entrega.numero || "",
+        cidade: entrega.cidade || "São Carlos",
         dataEntrega: entrega.data_entrega ? format(parseISO(entrega.data_entrega), "yyyy-MM-dd") : "",
         horaEntrega: entrega.data_entrega ? format(parseISO(entrega.data_entrega), "HH:mm") : "",
         dataRetirada: entrega.data_retirada ? format(parseISO(entrega.data_retirada), "yyyy-MM-dd") : "",
@@ -114,11 +116,30 @@ export function EditarAgendamentoDialog({
   }
 
   function addKitJogo() {
-    const jogo = produtos.find((p) => p.produto.tipo === 'jogo_mesa_cadeira')
-    if (jogo) {
-      setItens([...itens, { produto_id: jogo.produto_id, quantidade: 1 }])
+    const mesa = produtos.find((p) => p.produto.nome.toLowerCase() === 'mesa avulsa')
+    const cadeira = produtos.find((p) => p.produto.nome.toLowerCase() === 'cadeira avulsa')
+
+    if (mesa && cadeira) {
+      // Check if they are already in the items list, update quantity if they are, otherwise add them
+      const newItens = [...itens];
+
+      const mesaIndex = newItens.findIndex(item => item.produto_id === mesa.produto_id);
+      if (mesaIndex !== -1) {
+        newItens[mesaIndex].quantidade += 1;
+      } else {
+        newItens.push({ produto_id: mesa.produto_id, quantidade: 1 });
+      }
+
+      const cadeiraIndex = newItens.findIndex(item => item.produto_id === cadeira.produto_id);
+      if (cadeiraIndex !== -1) {
+        newItens[cadeiraIndex].quantidade += 4;
+      } else {
+        newItens.push({ produto_id: cadeira.produto_id, quantidade: 4 });
+      }
+
+      setItens(newItens);
     } else {
-      alert("Nenhum produto do tipo 'Jogo Mesa + Cadeiras' encontrado no estoque.")
+      alert("Produtos 'Mesa Avulsa' e/o 'Cadeira Avulsa' não encontrados no estoque. Adicione-os primeiro para usar a função Kit.")
     }
   }
 
@@ -142,12 +163,41 @@ export function EditarAgendamentoDialog({
       return
     }
 
+    if (!form.numero) {
+      alert("Preencha o número da residência. Se não houver, coloque S/N.")
+      return
+    }
+
     setLoading(true)
 
     try {
-      // Validar disponibilidade de estoque no periodo (ignorando a própria entrega)
+      // Validar conflitos de horario
       const dataEntregaISO = new Date(`${form.dataEntrega}T${form.horaEntrega}`).toISOString()
       const dataRetiradaISO = new Date(`${form.dataRetirada}T${form.horaRetirada}`).toISOString()
+
+      const { data: conflitosEntrega } = await supabase
+        .from('entregas')
+        .select('id')
+        .neq('id', entrega.id)
+        .eq('data_entrega', dataEntregaISO)
+        .limit(1)
+
+      const { data: conflitosRetirada } = await supabase
+        .from('entregas')
+        .select('id')
+        .neq('id', entrega.id)
+        .eq('data_retirada', dataRetiradaISO)
+        .limit(1)
+
+      if ((conflitosEntrega && conflitosEntrega.length > 0) || (conflitosRetirada && conflitosRetirada.length > 0)) {
+        const confirmar = window.confirm("Já existe outra entrega ou retirada agendada para este mesmo horário exato. Deseja continuar mesmo assim?")
+        if (!confirmar) {
+          setLoading(false)
+          return
+        }
+      }
+
+      // Validar disponibilidade de estoque no periodo (ignorando a própria entrega)
 
       const { data: entregasNoPeriodo } = await supabase
         .from('itens_entrega')
@@ -228,6 +278,7 @@ export function EditarAgendamentoDialog({
           cliente_id: clienteId,
           endereco: form.endereco,
           numero: form.numero || null,
+          cidade: form.cidade,
           data_entrega: dataEntrega.toISOString(),
           data_retirada: dataRetirada.toISOString(),
           observacoes: form.observacoes || null,
@@ -297,24 +348,35 @@ export function EditarAgendamentoDialog({
                 />
               </div>
             </div>
-            <div className="grid gap-4 sm:grid-cols-4">
-              <div className="space-y-2 sm:col-span-3">
-                <Label htmlFor="endereco">Endereço</Label>
+            <div className="grid gap-4 sm:grid-cols-12">
+              <div className="space-y-2 sm:col-span-6">
+                <Label htmlFor="endereco">Rua, Bairro</Label>
                 <Input
                   id="endereco"
                   value={form.endereco}
                   onChange={(e) => setForm({ ...form, endereco: e.target.value })}
-                  placeholder="Rua, bairro, cidade"
+                  placeholder="Rua das Flores, 123, Centro"
                   required
                 />
               </div>
-              <div className="space-y-2 sm:col-span-1">
+              <div className="space-y-2 sm:col-span-3">
                 <Label htmlFor="numero">Número</Label>
                 <Input
                   id="numero"
                   value={form.numero}
                   onChange={(e) => setForm({ ...form, numero: e.target.value })}
                   placeholder="S/N"
+                  required
+                />
+              </div>
+              <div className="space-y-2 sm:col-span-3">
+                <Label htmlFor="cidade">Cidade</Label>
+                <Input
+                  id="cidade"
+                  value={form.cidade}
+                  onChange={(e) => setForm({ ...form, cidade: e.target.value })}
+                  placeholder="São Carlos"
+                  required
                 />
               </div>
             </div>
@@ -424,7 +486,7 @@ export function EditarAgendamentoDialog({
                           type="number"
                           value={item.quantidade}
                           onChange={(e) => updateItem(index, "quantidade", parseInt(e.target.value) || 1)}
-                          className="h-9 rounded-none text-center"
+                          className="h-9 rounded-none text-center bg-background text-foreground font-medium"
                           min={1}
                         />
                         <Button

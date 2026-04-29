@@ -18,21 +18,12 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { supabase } from "@/lib/supabase"
-import type { TipoProduto } from "@/lib/database.types"
 
 interface NovoProdutoDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onSuccess: () => void
 }
-
-const tiposProduto: { value: TipoProduto; label: string }[] = [
-  { value: "jogo_mesa_cadeira", label: "Jogo Mesa + Cadeiras" },
-  { value: "mesa_avulsa", label: "Mesa Avulsa" },
-  { value: "pista_comida", label: "Pista de Comida" },
-  { value: "toalha", label: "Toalha" },
-  { value: "outro", label: "Outro" },
-]
 
 export function NovoProdutoDialog({
   open,
@@ -42,7 +33,6 @@ export function NovoProdutoDialog({
   const [loading, setLoading] = useState(false)
   const [form, setForm] = useState({
     nome: "",
-    tipo: "outro" as TipoProduto,
     preco_unitario: "0",
     quantidade: "0",
   })
@@ -59,7 +49,6 @@ export function NovoProdutoDialog({
         .from("produtos")
         .insert({
           nome: form.nome,
-          tipo: form.tipo,
           preco_unitario: preco
         })
         .select("id")
@@ -76,7 +65,7 @@ export function NovoProdutoDialog({
         })
       }
 
-      setForm({ nome: "", tipo: "outro", preco_unitario: "0", quantidade: "0" })
+      setForm({ nome: "", preco_unitario: "0", quantidade: "0" })
       onOpenChange(false)
       onSuccess()
     } catch (error) {
@@ -103,25 +92,6 @@ export function NovoProdutoDialog({
               placeholder="Ex: Jogo Mesa Redonda"
               required
             />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="tipo">Tipo</Label>
-            <Select
-              value={form.tipo}
-              onValueChange={(value) => setForm({ ...form, tipo: value as TipoProduto })}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {tiposProduto.map((tipo) => (
-                  <SelectItem key={tipo.value} value={tipo.value}>
-                    {tipo.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
 
           <div className="space-y-2">
