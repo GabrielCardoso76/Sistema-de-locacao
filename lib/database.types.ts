@@ -5,6 +5,7 @@ export interface Produto {
   id: string
   nome: string
   tipo: TipoProduto
+  preco_unitario: number
   created_at: string
 }
 
@@ -37,6 +38,9 @@ export interface Entrega {
   status: StatusEntrega
   observacoes: string | null
   ordem_rota: number | null
+  valor_frete: number
+  valor_total: number
+  pago: boolean
   created_at: string
   cliente?: Cliente
   itens?: ItemEntrega[]

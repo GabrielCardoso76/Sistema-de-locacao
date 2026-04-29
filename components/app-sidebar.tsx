@@ -48,7 +48,7 @@ export function AppSidebar() {
       >
         <div className="flex h-16 items-center gap-2 border-b border-sidebar-border px-6">
           <Package className="h-6 w-6" />
-          <span className="text-lg font-semibold">Entregas</span>
+          <span className="text-lg font-semibold">TS Festas</span>
         </div>
 
         <nav className="flex-1 space-y-1 p-4">

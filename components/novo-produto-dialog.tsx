@@ -43,6 +43,7 @@ export function NovoProdutoDialog({
   const [form, setForm] = useState({
     nome: "",
     tipo: "outro" as TipoProduto,
+    preco_unitario: "0",
     quantidade: "0",
   })
 
@@ -51,10 +52,16 @@ export function NovoProdutoDialog({
     setLoading(true)
 
     try {
+      const preco = parseFloat(form.preco_unitario.replace(",", ".")) || 0
+
       // Criar produto
       const { data: produto } = await supabase
         .from("produtos")
-        .insert({ nome: form.nome, tipo: form.tipo })
+        .insert({
+          nome: form.nome,
+          tipo: form.tipo,
+          preco_unitario: preco
+        })
         .select("id")
         .single()
 
@@ -69,7 +76,7 @@ export function NovoProdutoDialog({
         })
       }
 
-      setForm({ nome: "", tipo: "outro", quantidade: "0" })
+      setForm({ nome: "", tipo: "outro", preco_unitario: "0", quantidade: "0" })
       onOpenChange(false)
       onSuccess()
     } catch (error) {
@@ -115,6 +122,19 @@ export function NovoProdutoDialog({
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="preco_unitario">Preço Unitário (R$)</Label>
+            <Input
+              id="preco_unitario"
+              type="number"
+              step="0.01"
+              min="0"
+              value={form.preco_unitario}
+              onChange={(e) => setForm({ ...form, preco_unitario: e.target.value })}
+              placeholder="Ex: 15.00"
+            />
           </div>
 
           <div className="space-y-2">
