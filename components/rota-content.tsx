@@ -57,7 +57,11 @@ export function RotaContent() {
     const entregasComCoordenadas = await Promise.all(
       (data || []).map(async (entrega) => {
         if (!entrega.latitude || !entrega.longitude) {
-          const coords = await geocodeAddress(entrega.endereco)
+          const enderecoCompleto = entrega.numero 
+            ? `${entrega.endereco}, ${entrega.numero}`
+            : entrega.endereco
+
+          const coords = await geocodeAddress(enderecoCompleto)
           if (coords) {
             // Atualizar no banco
             await supabase
@@ -130,9 +134,12 @@ export function RotaContent() {
     }
   }
 
-  function abrirNavegacao(endereco: string) {
-    const encoded = encodeURIComponent(endereco)
-    window.open(`https://www.google.com/maps/dir/?api=1&destination=${encoded}`, "_blank")
+  function abrirNavegacao(endereco: string, numero?: string | null) {
+    const enderecoCompleto = numero 
+      ? `${endereco}, ${numero}`
+      : endereco
+    const encoded = encodeURIComponent(enderecoCompleto)
+    window.open(`https://www.google.com/maps/dir/?api=1&origin=Meu+Local&destination=${encoded}`, "_blank")
   }
 
   if (loading) {
@@ -218,7 +225,7 @@ export function RotaContent() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-0">
-                <div className="h-[400px] lg:h-[500px]">
+                <div className="h-[400px] lg:h-[500px] relative z-0">
                   <MapaWrapper
                     entregas={entregas}
                     selectedEntrega={selectedEntrega}
@@ -257,7 +264,10 @@ export function RotaContent() {
                   <div className="rounded-lg bg-muted p-3">
                     <div className="flex items-start gap-2">
                       <MapPin className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                      <p className="text-sm">{selectedEntrega.endereco}</p>
+                      <p className="text-sm">
+                        {selectedEntrega.endereco}
+                        {selectedEntrega.numero && `, ${selectedEntrega.numero}`}
+                      </p>
                     </div>
                   </div>
 
@@ -296,7 +306,7 @@ export function RotaContent() {
                   <div className="flex flex-col gap-2 pt-2">
                     <Button
                       className="w-full"
-                      onClick={() => abrirNavegacao(selectedEntrega.endereco)}
+                      onClick={() => abrirNavegacao(selectedEntrega.endereco, selectedEntrega.numero)}
                     >
                       <Navigation className="mr-2 h-4 w-4" />
                       Navegar
