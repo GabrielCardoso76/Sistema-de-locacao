@@ -345,8 +345,7 @@ export function EditarAgendamentoDialog({
         reservadosMap.set(item.produto_id, atual + item.quantidade)
       })
 
-      // Checar contra o estoque total de cada item selecionado (Trava Desativada Temporariamente)
-      /*
+      // Checar contra o estoque total de cada item selecionado e ativar a trava
       for (const item of itens) {
         if (!item.produto_id) continue;
 
@@ -362,7 +361,6 @@ export function EditarAgendamentoDialog({
           return
         }
       }
-      */
 
       // Atualizar ou buscar cliente
       let clienteId = entrega.cliente_id
@@ -447,7 +445,7 @@ export function EditarAgendamentoDialog({
           {/* Dados do Cliente */}
           <div className="space-y-4">
             <h3 className="font-medium">Dados do Cliente</h3>
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="nome">Nome</Label>
                 <Input
@@ -468,18 +466,18 @@ export function EditarAgendamentoDialog({
                 />
               </div>
             </div>
-            <div className="grid gap-4 sm:grid-cols-12">
-              <div className="space-y-2 sm:col-span-6">
-                <div className="flex justify-between items-center"><Label htmlFor="endereco">Rua, Bairro</Label><div className="flex gap-2"><Button type="button" variant="ghost" size="icon" className={`h-6 w-6 ${isListening ? "text-red-500 animate-pulse" : "text-muted-foreground"}`} onClick={startListening} title="Ditar endereço"><Mic className="h-4 w-4" /></Button><Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground" onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${form.endereco}, ${form.numero || ""}, ${form.cidade || ""}, SP, Brasil`)}`, "_blank")} title="Verificar no Maps"><MapPin className="h-4 w-4" /></Button></div></div>
+            <div className="grid gap-4 grid-cols-12">
+              <div className="space-y-2 col-span-12 sm:col-span-8">
+                <div className="flex justify-between items-center"><Label htmlFor="endereco">Rua</Label><div className="flex gap-2"><Button type="button" variant="ghost" size="icon" className={`h-6 w-6 ${isListening ? "text-red-500 animate-pulse" : "text-muted-foreground"}`} onClick={startListening} title="Ditar endereço"><Mic className="h-4 w-4" /></Button><Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground" onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${form.endereco}, ${form.numero || ""}, ${form.cidade || ""}, SP, Brasil`)}`, "_blank")} title="Verificar no Maps"><MapPin className="h-4 w-4" /></Button></div></div>
                 <Input
                   id="endereco"
                   value={form.endereco}
                   onChange={(e) => setForm({ ...form, endereco: e.target.value })}
-                  placeholder="Rua das Flores, 123, Centro"
+                  placeholder="Rua Auto de Carvalho"
                   required
                 />
               </div>
-              <div className="space-y-2 sm:col-span-3">
+              <div className="space-y-2 col-span-12 sm:col-span-4">
                 <Label htmlFor="numero">Número</Label>
                 <Input
                   id="numero"
@@ -489,7 +487,16 @@ export function EditarAgendamentoDialog({
                   required
                 />
               </div>
-              <div className="space-y-2 sm:col-span-3">
+              <div className="space-y-2 col-span-12 sm:col-span-6">
+                <Label htmlFor="bairro">Bairro</Label>
+                <Input
+                  id="bairro"
+                  value={form.bairro}
+                  onChange={(e) => setForm({ ...form, bairro: e.target.value })}
+                  placeholder="Cidade Aracy"
+                />
+              </div>
+              <div className="space-y-2 col-span-12 sm:col-span-6">
                 <Label htmlFor="cidade">Cidade</Label>
                 <Input
                   id="cidade"
@@ -505,7 +512,7 @@ export function EditarAgendamentoDialog({
           {/* Datas */}
           <div className="space-y-4">
             <h3 className="font-medium">Datas e Horários</h3>
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="dataEntrega">Data da Entrega</Label>
                 <Input
@@ -640,7 +647,7 @@ export function EditarAgendamentoDialog({
           <div className="space-y-4 rounded-lg border p-4 bg-muted/50">
             <h3 className="font-medium">Valores e Pagamento</h3>
 
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label>Subtotal</Label>
                 <div className="text-lg font-semibold">
@@ -696,11 +703,11 @@ export function EditarAgendamentoDialog({
           </div>
 
           {/* Botões */}
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="w-full sm:w-auto">
               Cancelar
             </Button>
-            <Button type="submit" disabled={loading}>
+            <Button type="submit" disabled={loading} className="w-full sm:w-auto">
               {loading ? "Salvando..." : "Salvar Alterações"}
             </Button>
           </div>

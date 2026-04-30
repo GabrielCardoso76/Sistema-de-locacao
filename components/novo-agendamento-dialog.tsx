@@ -316,8 +316,7 @@ export function NovoAgendamentoDialog({
         reservadosMap.set(item.produto_id, atual + item.quantidade)
       })
 
-      // Checar contra o estoque total de cada item selecionado (Trava Desativada Temporariamente)
-      /*
+      // Checar contra o estoque total de cada item selecionado e ativar a trava
       for (const item of itens) {
         if (!item.produto_id) continue;
 
@@ -333,7 +332,6 @@ export function NovoAgendamentoDialog({
           return
         }
       }
-      */
 
       // Criar ou buscar cliente
       let clienteId: string
@@ -430,7 +428,7 @@ export function NovoAgendamentoDialog({
           {/* Dados do Cliente */}
           <div className="space-y-4">
             <h3 className="font-medium">Dados do Cliente</h3>
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="nome">Nome</Label>
                 <Input
@@ -451,14 +449,14 @@ export function NovoAgendamentoDialog({
                 />
               </div>
             </div>
-            <div className="grid gap-4 sm:grid-cols-12">
-              <div className="space-y-2 sm:col-span-6">
-                <div className="flex justify-between items-center"><Label htmlFor="endereco">Rua, Bairro</Label><div className="flex gap-2"><Button type="button" variant="ghost" size="icon" className={`h-6 w-6 ${isListening ? "text-red-500 animate-pulse" : "text-muted-foreground"}`} onClick={startListening} title="Ditar endereço"><Mic className="h-4 w-4" /></Button><Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground" onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${form.endereco}, ${form.numero || ""}, ${form.cidade || ""}, SP, Brasil`)}`, "_blank")} title="Verificar no Maps"><MapPin className="h-4 w-4" /></Button></div></div>
+            <div className="grid gap-4 grid-cols-12">
+              <div className="space-y-2 col-span-12 sm:col-span-8">
+                <div className="flex justify-between items-center"><Label htmlFor="endereco">Rua</Label><div className="flex gap-2"><Button type="button" variant="ghost" size="icon" className={`h-6 w-6 ${isListening ? "text-red-500 animate-pulse" : "text-muted-foreground"}`} onClick={startListening} title="Ditar endereço"><Mic className="h-4 w-4" /></Button><Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground" onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${form.endereco}, ${form.numero || ""}, ${form.cidade || ""}, SP, Brasil`)}`, "_blank")} title="Verificar no Maps"><MapPin className="h-4 w-4" /></Button></div></div>
                 <Input
                   id="endereco"
                   value={form.endereco}
                   onChange={(e) => setForm({ ...form, endereco: e.target.value })}
-                  placeholder="Rua das Flores, 123, Centro"
+                  placeholder="Rua Auto de Carvalho"
                   list="sugestoes-rua"
                   required
                 />
@@ -472,7 +470,7 @@ export function NovoAgendamentoDialog({
                   <option value="Santa Felícia, São Carlos" />
                 </datalist>
               </div>
-              <div className="space-y-2 sm:col-span-3">
+              <div className="space-y-2 col-span-12 sm:col-span-4">
                 <Label htmlFor="numero">Número</Label>
                 <Input
                   id="numero"
@@ -498,7 +496,7 @@ export function NovoAgendamentoDialog({
           {/* Datas */}
           <div className="space-y-4">
             <h3 className="font-medium">Datas e Horários</h3>
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="dataEntrega">Data da Entrega</Label>
                 <Input
@@ -633,7 +631,7 @@ export function NovoAgendamentoDialog({
           <div className="space-y-4 rounded-lg border p-4 bg-muted/50">
             <h3 className="font-medium">Valores e Pagamento</h3>
 
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label>Subtotal</Label>
                 <div className="text-lg font-semibold">
@@ -689,11 +687,11 @@ export function NovoAgendamentoDialog({
           </div>
 
           {/* Botões */}
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="w-full sm:w-auto">
               Cancelar
             </Button>
-            <Button type="submit" disabled={loading}>
+            <Button type="submit" disabled={loading} className="w-full sm:w-auto">
               {loading ? "Salvando..." : "Criar Entrega"}
             </Button>
           </div>

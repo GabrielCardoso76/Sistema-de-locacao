@@ -57,8 +57,10 @@ export function RotaContent() {
   // Funcao para geocodificar endereco
   async function geocodeAddress(address: string): Promise<{ lat: number; lng: number } | null> {
     try {
+      // Garante que o ", SP, Brasil" sempre seja anexado para maior precisão caso já não tenha na string enviada
+      const queryAddress = address.includes("SP, Brasil") ? address : `${address}, SP, Brasil`;
       const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(`${address}, SP, Brasil`)}&limit=1`
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(queryAddress)}&limit=1`
       )
       const data = await response.json()
       if (data && data.length > 0) {
