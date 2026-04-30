@@ -23,28 +23,15 @@ import {
 import { supabase } from "@/lib/supabase"
 import type { Produto, Estoque } from "@/lib/database.types"
 
-interface EditarAgendamentoDialogProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  onSuccess: () => void
-  entrega: any | null
-}
-
-interface ItemForm {
-  produto_id: string
-  quantidade: number
-}
-
 export function EditarAgendamentoDialog({
   open,
   onOpenChange,
   onSuccess,
   entrega,
-}: EditarAgendamentoDialogProps) {
-  const [isListening, setIsListening] = useState(false);
+}: any) {
   const [loading, setLoading] = useState(false)
   const [produtos, setProdutos] = useState<(Estoque & { produto: Produto })[]>([])
-  const [itens, setItens] = useState<ItemForm[]>([])
+  const [itens, setItens] = useState<any[]>([])
   const [form, setForm] = useState({
     nome: "", telefone: "", endereco: "", numero: "", cidade: "São Carlos",
     dataEntrega: "", horaEntrega: "", dataRetirada: "", horaRetirada: "",
@@ -77,34 +64,34 @@ export function EditarAgendamentoDialog({
     setProdutos(data || [])
   }
 
-  function updateItem(index: number, field: keyof ItemForm, value: string | number) {
+  function updateItem(index: number, field: string, value: any) {
     const newItens = [...itens]; newItens[index] = { ...newItens[index], [field]: value }; setItens(newItens)
   }
 
   function renderResumoItens() {
-    let mesas = 0; let cadeiras = 0;
-    itens.forEach((item) => {
-      const p = produtos.find((prod) => prod.produto_id === item.produto_id);
-      if (p?.produto.nome.toLowerCase() === "mesa avulsa") mesas += item.quantidade;
-      if (p?.produto.nome.toLowerCase() === "cadeira avulsa") cadeiras += item.quantidade;
+    let m = 0; let c = 0;
+    itens.forEach((i) => {
+      const p = produtos.find((prod) => prod.produto_id === i.produto_id);
+      if (p?.produto.nome.toLowerCase() === "mesa avulsa") m += i.quantidade;
+      if (p?.produto.nome.toLowerCase() === "cadeira avulsa") c += i.quantidade;
     });
-    if (mesas === 0 && cadeiras === 0) return null;
-    const kits = Math.min(mesas, Math.floor(cadeiras / 4));
+    if (m === 0 && c === 0) return null;
+    const kits = Math.min(m, Math.floor(c / 4));
     return (
-      <div className="mt-4 p-3 bg-primary/10 rounded-md border border-primary/30 text-sm text-primary font-bold">
+      // AJUSTE: text-primary font-bold para visibilidade
+      <div className="mt-4 p-3 bg-primary/10 rounded-md border border-primary/20 text-sm text-primary font-bold">
         Total: {kits} Jogo{kits !== 1 ? 's' : ''} ({kits} Mesas + {kits * 4} Cadeiras)
       </div>
     );
   }
 
-  const subtotal = itens.reduce((acc, item) => {
-    const p = produtos.find(prod => prod.produto_id === item.produto_id)
-    return p ? acc + (p.produto.preco_unitario * item.quantidade) : acc
+  const subtotal = itens.reduce((acc, i) => {
+    const p = produtos.find(prod => prod.produto_id === i.produto_id)
+    return p ? acc + (p.produto.preco_unitario * i.quantidade) : acc
   }, 0)
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault(); if (!entrega) return;
-    setLoading(true)
+  async function handleSubmit(e: any) {
+    e.preventDefault(); setLoading(true)
     try {
       await supabase.from("entregas").update({
         endereco: form.endereco, numero: form.numero, valor_frete: parseFloat(form.frete),
@@ -124,12 +111,16 @@ export function EditarAgendamentoDialog({
         <DialogHeader><DialogTitle>Editar Entrega</DialogTitle></DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2"><Label>Rua</Label><Input value={form.endereco} onChange={e => setForm({...form, endereco: e.target.value})} /></div>
-            <div className="space-y-2"><Label>Número</Label><Input value={form.numero} onChange={e => setForm({...form, numero: e.target.value})} /></div>
+            <div className="space-y-2"><Label>Nome</Label><Input value={form.nome} disabled /></div>
+            <div className="space-y-2"><Label>Telefone</Label><Input value={form.telefone} disabled /></div>
+          </div>
+          <div className="grid gap-4 grid-cols-12">
+            <div className="col-span-8 space-y-2"><Label>Rua</Label><Input value={form.endereco} onChange={e => setForm({...form, endereco: e.target.value})} /></div>
+            <div className="col-span-4 space-y-2"><Label>Número</Label><Input value={form.numero} onChange={e => setForm({...form, numero: e.target.value})} /></div>
           </div>
 
           <div className="space-y-4">
-            <Label className="font-bold">Itens da Locação</Label>
+            <Label className="font-bold">Itens</Label>
             {itens.map((item, index) => (
               <div key={index} className="flex items-end gap-2">
                 <div className="flex-1">
@@ -138,7 +129,8 @@ export function EditarAgendamentoDialog({
                     <SelectContent>{produtos.map(p => <SelectItem key={p.produto_id} value={p.produto_id}>{p.produto.nome}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
-                <div className="w-32 flex items-center"> {/* CORREÇÃO: Aumentado para w-32 */}
+                {/* AJUSTE: w-32 e remoção de spinners do input */}
+                <div className="w-32 flex items-center">
                   <Button type="button" variant="outline" size="icon" className="h-9 w-9 rounded-r-none" onClick={() => updateItem(index, "quantidade", Math.max(1, item.quantidade - 1))}><Minus className="h-4 w-4" /></Button>
                   <Input 
                     type="number" 
@@ -151,7 +143,7 @@ export function EditarAgendamentoDialog({
                 <Button type="button" variant="ghost" size="icon" onClick={() => setItens(itens.filter((_, i) => i !== index))}><Trash2 className="h-4 w-4 text-destructive" /></Button>
               </div>
             ))}
-            {renderResumoItens()} {/* CORREÇÃO: Resumo visível e destacado */}
+            {renderResumoItens()}
           </div>
 
           <div className="p-4 bg-muted border rounded-lg flex justify-between items-center">

@@ -54,13 +54,13 @@ export function NovoAgendamentoDialog({
     recognition.interimResults = false;
     recognition.maxAlternatives = 1;
 
-    recognition.onstart = () => setIsListening(true);
+    recognition.onstart = () => { setIsListening(true); };
     recognition.onresult = (event: any) => {
       const transcript = event.results[0][0].transcript;
       setForm(prev => ({ ...prev, endereco: prev.endereco ? `${prev.endereco} ${transcript}` : transcript }));
     };
-    recognition.onerror = () => setIsListening(false);
-    recognition.onend = () => setIsListening(false);
+    recognition.onerror = () => { setIsListening(false); };
+    recognition.onend = () => { setIsListening(false); };
     recognition.start();
   };
 
@@ -84,7 +84,7 @@ export function NovoAgendamentoDialog({
   })
 
   useEffect(() => {
-    if (open) loadProdutos()
+    if (open) { loadProdutos() }
   }, [open])
 
   const [estoqueBase, setEstoqueBase] = useState<(Estoque & { produto: Produto })[]>([]);
@@ -99,6 +99,7 @@ export function NovoAgendamentoDialog({
       try {
         const dataEntregaISO = new Date(`${form.dataEntrega}T${form.horaEntrega || "00:00"}`).toISOString();
         const dataRetiradaISO = new Date(`${form.dataRetirada}T${form.horaRetirada || "23:59"}`).toISOString();
+
         const { data: entregasNoPeriodo } = await supabase
           .from("entregas")
           .select(`id, data_entrega, data_retirada, status, itens:itens_entrega(produto_id, quantidade)`)
@@ -126,7 +127,7 @@ export function NovoAgendamentoDialog({
         setProdutos(estoqueBase);
       }
     }
-    if (estoqueBase.length > 0) calcDisponibilidadeReal();
+    if (estoqueBase.length > 0) { calcDisponibilidadeReal(); }
   }, [form.dataEntrega, form.horaEntrega, form.dataRetirada, form.horaRetirada, estoqueBase, open]);
 
   async function loadProdutos() {
@@ -149,21 +150,25 @@ export function NovoAgendamentoDialog({
     itens.forEach((item) => {
       const produto = produtos.find((p) => p.produto_id === item.produto_id);
       if (produto) {
-        if (produto.produto.nome.toLowerCase() === "mesa avulsa") mesas += item.quantidade;
-        else if (produto.produto.nome.toLowerCase() === "cadeira avulsa") cadeiras += item.quantidade;
+        if (produto.produto.nome.toLowerCase() === "mesa avulsa") { mesas += item.quantidade; }
+        else if (produto.produto.nome.toLowerCase() === "cadeira avulsa") { cadeiras += item.quantidade; }
       }
     });
+
     if (mesas === 0 && cadeiras === 0) return null;
+
     const kitsPossiveis = Math.min(mesas, Math.floor(cadeiras / 4));
     const mesasRestantes = mesas - kitsPossiveis;
     const cadeirasRestantes = cadeiras - (kitsPossiveis * 4);
+
     const partes = [];
     if (kitsPossiveis > 0) partes.push(`${kitsPossiveis} Jogo${kitsPossiveis > 1 ? "s" : ""} (${kitsPossiveis} Mesa${kitsPossiveis > 1 ? "s" : ""} + ${kitsPossiveis * 4} Cadeira${kitsPossiveis * 4 > 1 ? "s" : ""})`);
     if (mesasRestantes > 0) partes.push(`${mesasRestantes} Mesa${mesasRestantes > 1 ? "s" : ""} avulsa`);
     if (cadeirasRestantes > 0) partes.push(`${cadeirasRestantes} Cadeira${cadeirasRestantes > 1 ? "s" : ""} avulsa`);
 
     return partes.length > 0 ? (
-      <div className="mt-4 p-3 bg-primary/10 rounded-md border border-primary/30 text-sm text-primary font-bold">
+      // AJUSTE: text-primary para visibilidade no fundo claro
+      <div className="mt-4 p-3 bg-primary/10 rounded-md border border-primary/20 text-sm text-primary font-bold">
         Total: {partes.join(" + ")}
       </div>
     ) : null;
@@ -174,46 +179,57 @@ export function NovoAgendamentoDialog({
     const cadeira = produtos.find((p) => p.produto.nome.toLowerCase() === 'cadeira avulsa')
     if (mesa && cadeira) {
       const newItens = [...itens];
-      const mesaIdx = newItens.findIndex(i => i.produto_id === mesa.produto_id);
-      if (mesaIdx !== -1) newItens[mesaIdx].quantidade += 1;
-      else newItens.push({ produto_id: mesa.produto_id, quantidade: 1 });
-      const cadeiraIdx = newItens.findIndex(i => i.produto_id === cadeira.produto_id);
-      if (cadeiraIdx !== -1) newItens[cadeiraIdx].quantidade += 4;
-      else newItens.push({ produto_id: cadeira.produto_id, quantidade: 4 });
+      const mesaIndex = newItens.findIndex(item => item.produto_id === mesa.produto_id);
+      if (mesaIndex !== -1) { newItens[mesaIndex].quantidade += 1; }
+      else { newItens.push({ produto_id: mesa.produto_id, quantidade: 1 }); }
+      const cadeiraIndex = newItens.findIndex(item => item.produto_id === cadeira.produto_id);
+      if (cadeiraIndex !== -1) { newItens[cadeiraIndex].quantidade += 4; }
+      else { newItens.push({ produto_id: cadeira.produto_id, quantidade: 4 }); }
       setItens(newItens);
     }
   }
 
   const subtotal = itens.reduce((acc, item) => {
-    const p = produtos.find(prod => prod.produto_id === item.produto_id)
-    return p ? acc + (p.produto.preco_unitario * item.quantidade) : acc
+    const produto = produtos.find(p => p.produto_id === item.produto_id)
+    if (produto && item.quantidade) { return acc + (produto.produto.preco_unitario * item.quantidade) }
+    return acc
   }, 0)
-  const total = subtotal + (parseFloat(form.frete) || 0)
+
+  const frete = parseFloat(form.frete) || 0
+  const total = subtotal + frete
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!form.dataEntrega || !form.dataRetirada || itens.length === 0) return alert("Dados incompletos.")
+    if (!form.dataEntrega || !form.dataRetirada || itens.length === 0) { alert("Preencha as datas e itens."); return; }
     setLoading(true)
     try {
+      const dataEntregaISO = new Date(`${form.dataEntrega}T${form.horaEntrega}`).toISOString()
+      const dataRetiradaISO = new Date(`${form.dataRetirada}T${form.horaRetirada}`).toISOString()
+
+      // Validar disponibilidade e criar cliente/entrega (Lógica original preservada)
       let clienteId: string
-      const { data: existing } = await supabase.from("clientes").select("id, nome").eq("telefone", form.telefone)
-      const exact = existing?.find(c => c.nome.toLowerCase() === form.nome.toLowerCase())
-      if (exact) clienteId = exact.id
+      const { data: existingClientes } = await supabase.from("clientes").select("id, nome").eq("telefone", form.telefone)
+      const exactMatch = existingClientes?.find(c => c.nome.toLowerCase() === form.nome.toLowerCase())
+      if (exactMatch) { clienteId = exactMatch.id }
       else {
-        const { data: n } = await supabase.from("clientes").insert({ nome: form.nome, telefone: form.telefone }).select("id").single()
-        clienteId = n!.id
+        const { data: newCliente } = await supabase.from("clientes").insert({ nome: form.nome, telefone: form.telefone }).select("id").single()
+        clienteId = newCliente!.id
       }
+
       const { data: entrega } = await supabase.from("entregas").insert({
-        cliente_id: clienteId, endereco: form.endereco, numero: form.numero, cidade: form.cidade,
-        data_entrega: new Date(`${form.dataEntrega}T${form.horaEntrega}`).toISOString(),
-        data_retirada: new Date(`${form.dataRetirada}T${form.horaRetirada}`).toISOString(),
-        status: "agendada", valor_frete: parseFloat(form.frete), valor_total: total, pago: form.pago
-      }).select("id").single()
-      if (entrega) {
-        await supabase.from("itens_entrega").insert(itens.map(i => ({ entrega_id: entrega.id, produto_id: i.produto_id, quantidade: i.quantidade })))
+          cliente_id: clienteId, endereco: form.endereco, numero: form.numero, cidade: form.cidade,
+          data_entrega: dataEntregaISO, data_retirada: dataRetiradaISO, status: "agendada",
+          observacoes: form.observacoes, valor_frete: frete, valor_total: total, pago: form.pago,
+        }).select("id").single()
+
+      if (itens.length > 0 && entrega) {
+        await supabase.from("itens_entrega").insert(itens.map(item => ({
+            entrega_id: entrega.id, produto_id: item.produto_id, quantidade: item.quantidade,
+        })))
       }
-      onOpenChange(false); onSuccess();
-    } catch (err) { console.error(err) } finally { setLoading(false) }
+      setForm({ nome: "", telefone: "", endereco: "", numero: "", cidade: "São Carlos", dataEntrega: "", horaEntrega: "", dataRetirada: "", horaRetirada: "", observacoes: "", frete: "10.00", pago: false });
+      setItens([]); onOpenChange(false); onSuccess();
+    } catch (error) { console.error(error) } finally { setLoading(false) }
   }
 
   return (
@@ -224,42 +240,61 @@ export function NovoAgendamentoDialog({
           <div className="space-y-4">
             <h3 className="font-medium">Dados do Cliente</h3>
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2"><Label>Nome</Label><Input value={form.nome} onChange={e => setForm({...form, nome: e.target.value})} required /></div>
-              <div className="space-y-2"><Label>Telefone</Label><Input value={form.telefone} onChange={e => setForm({...form, telefone: e.target.value})} required /></div>
+              <div className="space-y-2"><Label>Nome</Label><Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} required /></div>
+              <div className="space-y-2"><Label>Telefone</Label><Input value={form.telefone} onChange={(e) => setForm({ ...form, telefone: e.target.value })} placeholder="(00) 00000-0000" required /></div>
             </div>
             <div className="grid gap-4 grid-cols-12">
-              <div className="col-span-8 space-y-2">
-                <div className="flex justify-between items-center"><Label>Rua</Label><Button type="button" variant="ghost" size="icon" onClick={startListening}><Mic className={isListening ? "text-red-500 animate-pulse" : ""} /></Button></div>
-                <Input value={form.endereco} onChange={e => setForm({...form, endereco: e.target.value})} required />
+              <div className="col-span-12 sm:col-span-8 space-y-2">
+                <div className="flex justify-between items-center"><Label>Rua</Label>
+                  <div className="flex gap-2">
+                    <Button type="button" variant="ghost" size="icon" className={`h-6 w-6 ${isListening ? "text-red-500 animate-pulse" : ""}`} onClick={startListening}><Mic className="h-4 w-4" /></Button>
+                    <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${form.endereco}, ${form.numero}, ${form.cidade}, SP`)}`, "_blank")}><MapPin className="h-4 w-4" /></Button>
+                  </div>
+                </div>
+                <Input value={form.endereco} onChange={(e) => setForm({ ...form, endereco: e.target.value })} placeholder="Rua..." required />
               </div>
-              <div className="col-span-4 space-y-2"><Label>Número</Label><Input value={form.numero} onChange={e => setForm({...form, numero: e.target.value})} required /></div>
+              <div className="col-span-12 sm:col-span-4 space-y-2"><Label>Número</Label><Input value={form.numero} onChange={(e) => setForm({ ...form, numero: e.target.value })} placeholder="S/N" required /></div>
+              <div className="col-span-12 sm:col-span-3 space-y-2"><Label>Cidade</Label><Input value={form.cidade} onChange={(e) => setForm({ ...form, cidade: e.target.value })} required /></div>
             </div>
           </div>
 
           <div className="space-y-4">
-            <h3 className="font-medium">Itens</h3>
-            <div className="flex gap-2 mb-2">
-              <Button type="button" variant="secondary" size="sm" onClick={addKitJogo}>+ Kit Jogo</Button>
-              <Button type="button" variant="outline" size="sm" onClick={addItem}>+ Item</Button>
+            <h3 className="font-medium">Datas e Horários</h3>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2"><Label>Data Entrega</Label><Input type="date" value={form.dataEntrega} onChange={(e) => setForm({ ...form, dataEntrega: e.target.value })} required /></div>
+              <div className="space-y-2"><Label>Hora Entrega</Label><Input type="time" value={form.horaEntrega} onChange={(e) => setForm({ ...form, horaEntrega: e.target.value })} required /></div>
+              <div className="space-y-2"><Label>Data Retirada</Label><Input type="date" value={form.dataRetirada} onChange={(e) => setForm({ ...form, dataRetirada: e.target.value })} required /></div>
+              <div className="space-y-2"><Label>Hora Retirada</Label><Input type="time" value={form.horaRetirada} onChange={(e) => setForm({ ...form, horaRetirada: e.target.value })} required /></div>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="font-medium">Itens</h3>
+              <div className="flex gap-2">
+                <Button type="button" variant="secondary" size="sm" onClick={addKitJogo}><Plus className="mr-2 h-4 w-4" /> Kit Jogo</Button>
+                <Button type="button" variant="outline" size="sm" onClick={addItem}><Plus className="mr-2 h-4 w-4" /> Adicionar</Button>
+              </div>
             </div>
             {itens.map((item, index) => (
               <div key={index} className="flex items-end gap-2">
-                <div className="flex-1 space-y-1">
+                <div className="flex-1 space-y-2">
                   <Label>Produto</Label>
-                  <Select value={item.produto_id} onValueChange={v => updateItem(index, "produto_id", v)}>
+                  <Select value={item.produto_id} onValueChange={(value) => updateItem(index, "produto_id", value)}>
                     <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                    <SelectContent>{produtos.map(p => <SelectItem key={p.produto_id} value={p.produto_id}>{p.produto.nome} ({p.quantidade_disponivel} disp.)</SelectItem>)}</SelectContent>
+                    <SelectContent>{produtos.map((p) => (<SelectItem key={p.produto_id} value={p.produto_id}>{p.produto.nome} ({p.quantidade_disponivel} disp.)</SelectItem>))}</SelectContent>
                   </Select>
                 </div>
-                <div className="w-32 space-y-1"> {/* CORREÇÃO: Aumentado para w-32 */}
+                {/* AJUSTE: w-32 e remoção de spinners do input */}
+                <div className="w-32 space-y-2">
                   <Label>Qtd</Label>
                   <div className="flex items-center">
                     <Button type="button" variant="outline" size="icon" className="h-9 w-9 rounded-r-none" onClick={() => updateItem(index, "quantidade", Math.max(1, item.quantidade - 1))}><Minus className="h-4 w-4" /></Button>
-                    <Input 
-                      type="number" 
-                      value={item.quantidade} 
-                      onChange={e => updateItem(index, "quantidade", parseInt(e.target.value) || 1)}
-                      className="h-9 rounded-none text-center bg-background text-foreground font-bold text-lg w-full border-x-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
+                    <Input
+                      type="number"
+                      value={item.quantidade}
+                      onChange={(e) => updateItem(index, "quantidade", parseInt(e.target.value) || 1)}
+                      className="h-9 rounded-none text-center bg-white dark:bg-zinc-800 text-black dark:text-white font-bold text-lg w-full border-x-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     />
                     <Button type="button" variant="outline" size="icon" className="h-9 w-9 rounded-l-none" onClick={() => updateItem(index, "quantidade", item.quantidade + 1)}><Plus className="h-4 w-4" /></Button>
                   </div>
@@ -267,12 +302,18 @@ export function NovoAgendamentoDialog({
                 <Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => removeItem(index)}><Trash2 className="h-4 w-4" /></Button>
               </div>
             ))}
-            {renderResumoItens()} {/* CORREÇÃO: Resumo com cores visíveis */}
+            {renderResumoItens()}
           </div>
 
-          <div className="p-4 bg-muted/50 border rounded-lg space-y-4">
-            <div className="flex justify-between font-bold text-xl text-primary"><span>Total:</span><span>R$ {total.toFixed(2)}</span></div>
-            <div className="flex items-center gap-2"><input type="checkbox" checked={form.pago} onChange={e => setForm({...form, pago: e.target.checked})} className="h-5 w-5" /><Label>Pedido Pago</Label></div>
+          <div className="space-y-4 rounded-lg border p-4 bg-muted/50">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2"><Label>Subtotal</Label><div className="text-lg font-semibold text-foreground">R$ {subtotal.toFixed(2)}</div></div>
+              <div className="space-y-2"><Label>Frete (R$)</Label><Input type="number" value={form.frete} onChange={(e) => setForm({ ...form, frete: e.target.value })} /></div>
+            </div>
+            <div className="flex items-center justify-between pt-4 border-t">
+              <div className="space-y-1"><Label>Total</Label><div className="text-2xl font-bold text-primary">R$ {total.toFixed(2)}</div></div>
+              <div className="flex items-center gap-2"><input type="checkbox" checked={form.pago} onChange={(e) => setForm({ ...form, pago: e.target.checked })} className="h-5 w-5" /><Label>Pedido Pago</Label></div>
+            </div>
           </div>
           <Button type="submit" disabled={loading} className="w-full">{loading ? "Salvando..." : "Criar Entrega"}</Button>
         </form>
