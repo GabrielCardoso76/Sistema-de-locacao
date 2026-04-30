@@ -76,7 +76,7 @@ export function RotaContent() {
         .select("*, cliente:clientes(*), itens:itens_entrega(*, produto:produtos(*))")
         .gte("data_entrega", inicioHoje)
         .lt("data_entrega", fimHoje)
-        .in("status", ["agendada", "em_rota"]),
+        .in("status", ["agendada", "em_rota_entrega"]),
 
       // Fetch retiradas
       supabase
@@ -84,7 +84,7 @@ export function RotaContent() {
         .select("*, cliente:clientes(*), itens:itens_entrega(*, produto:produtos(*))")
         .gte("data_retirada", inicioHoje)
         .lt("data_retirada", fimHoje)
-        .eq("status", "entregue")
+        .in("status", ["entregue", "aguardando_retirada", "em_rota_retirada"])
     ])
 
     const entregasData = (entregasResult.data || []).map(e => ({ ...e, isRetirada: false }))
@@ -150,24 +150,41 @@ export function RotaContent() {
     loadEntregas()
   }
 
-  async function marcarEntregue(entrega: Entrega & { isRetirada?: boolean }) {
-    const newStatus = entrega.isRetirada ? "retirada" : "entregue"
+  async function avancarStatus(entrega: Entrega & { isRetirada?: boolean }) {
+    let newStatus = entrega.status
+    if (entrega.status === "agendada") newStatus = "em_rota_entrega"
+    else if (entrega.status === "em_rota_entrega") newStatus = "entregue"
+    else if (entrega.status === "entregue") newStatus = "aguardando_retirada"
+    else if (entrega.status === "aguardando_retirada") newStatus = "em_rota_retirada"
+    else if (entrega.status === "em_rota_retirada") newStatus = "finalizada"
 
     await supabase
       .from("entregas")
       .update({ status: newStatus })
       .eq("id", entrega.id)
 
-    const currentIndex = entregas.findIndex((e) => e.id === entrega.id)
-    const nextEntrega = entregas[currentIndex + 1]
+    // We update the local state without changing selection
+    // so the user can easily click "Desfazer" if needed
+    setSelectedEntrega({ ...entrega, status: newStatus as any })
     
-    if (nextEntrega) {
-      setSelectedEntrega(nextEntrega)
-    } else {
-      setSelectedEntrega(null)
-      setRotaIniciada(false)
-    }
-    
+    // We do NOT immediately navigate away.
+    loadEntregas()
+  }
+
+  async function voltarStatus(entrega: Entrega & { isRetirada?: boolean }) {
+    let newStatus = entrega.status
+    if (entrega.status === "finalizada") newStatus = "em_rota_retirada"
+    else if (entrega.status === "em_rota_retirada") newStatus = "aguardando_retirada"
+    else if (entrega.status === "aguardando_retirada") newStatus = "entregue"
+    else if (entrega.status === "entregue") newStatus = "em_rota_entrega"
+    else if (entrega.status === "em_rota_entrega") newStatus = "agendada"
+
+    await supabase
+      .from("entregas")
+      .update({ status: newStatus })
+      .eq("id", entrega.id)
+
+    setSelectedEntrega({ ...entrega, status: newStatus as any })
     loadEntregas()
   }
 
@@ -371,7 +388,7 @@ export function RotaContent() {
                         <p className="text-sm">
                           {selectedEntrega.endereco}
                           {selectedEntrega.numero && `, ${selectedEntrega.numero}`}
-                          {selectedEntrega.cidade && ` - ${selectedEntrega.cidade}`}
+                          {selectedEntrega.cidade && ` - Cidade: ${selectedEntrega.cidade}`}
                         </p>
                       </div>
                       <Button
@@ -426,15 +443,31 @@ export function RotaContent() {
                       <Navigation className="mr-2 h-4 w-4" />
                       Navegar
                     </Button>
-                    {rotaIniciada && (
-                      <Button
-                        variant="outline"
-                        className="w-full border-green-500 text-green-600 hover:bg-green-500 hover:text-white"
-                        onClick={() => marcarEntregue(selectedEntrega)}
-                      >
-                        <CheckCircle className="mr-2 h-4 w-4" />
-                        {selectedEntrega.isRetirada ? "Marcar Retirada" : "Marcar Entregue"}
-                      </Button>
+                    {rotaIniciada && selectedEntrega.status !== "finalizada" && (
+                      <div className="flex gap-2 w-full">
+                        <Button
+                          variant="outline"
+                          className="flex-1 border-green-500 text-green-600 hover:bg-green-500 hover:text-white"
+                          onClick={() => avancarStatus(selectedEntrega)}
+                        >
+                          <CheckCircle className="mr-2 h-4 w-4" />
+                          {selectedEntrega.status === "agendada" ? "Em Rota Entrega" :
+                           selectedEntrega.status === "em_rota_entrega" ? "Entregue" :
+                           selectedEntrega.status === "entregue" ? "Aguardando Retirada" :
+                           selectedEntrega.status === "aguardando_retirada" ? "Em Rota Retirada" :
+                           "Finalizar"}
+                        </Button>
+                        {selectedEntrega.status !== "agendada" && (
+                          <Button
+                            variant="outline"
+                            className="text-muted-foreground hover:bg-destructive hover:text-white"
+                            onClick={() => voltarStatus(selectedEntrega)}
+                            title="Desfazer/Voltar Status"
+                          >
+                            Desfazer
+                          </Button>
+                        )}
+                      </div>
                     )}
                   </div>
                 </CardContent>
@@ -494,10 +527,14 @@ export function RotaContent() {
                         )}
                       </button>
                       <Badge
-                        variant={entrega.status === "em_rota" ? "default" : "secondary"}
+                        variant={["em_rota_entrega", "em_rota_retirada"].includes(entrega.status) ? "default" : "secondary"}
                         className="text-xs"
                       >
-                        {entrega.status === "em_rota" ? "Em Rota" : "Agendada"}
+                        {entrega.status === "em_rota_entrega" ? "Em Rota" :
+                         entrega.status === "em_rota_retirada" ? "Em Rota" :
+                         entrega.status === "entregue" ? "Entregue" :
+                         entrega.status === "aguardando_retirada" ? "Aguar. Ret." :
+                         entrega.status === "finalizada" ? "Finalizada" : "Agendada"}
                       </Badge>
                     </div>
                   </div>

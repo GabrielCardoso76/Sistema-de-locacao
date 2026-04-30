@@ -68,9 +68,11 @@ export function DetalhesEntregaDialog({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="agendada">Agendada</SelectItem>
-                <SelectItem value="em_rota">Em Rota</SelectItem>
+                <SelectItem value="em_rota_entrega">Em Rota de Entrega</SelectItem>
                 <SelectItem value="entregue">Entregue</SelectItem>
-                <SelectItem value="retirada">Retirada</SelectItem>
+                <SelectItem value="aguardando_retirada">Aguardando Retirada</SelectItem>
+                <SelectItem value="em_rota_retirada">Em Rota de Retirada</SelectItem>
+                <SelectItem value="finalizada">Finalizada</SelectItem>
               </SelectContent>
             </Select>
           </div>
