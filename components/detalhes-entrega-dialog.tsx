@@ -50,7 +50,7 @@ export function DetalhesEntregaDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Detalhes da Entrega</DialogTitle>
         </DialogHeader>
@@ -98,12 +98,13 @@ export function DetalhesEntregaDialog({
               <MapPin className="h-4 w-4" />
               Endereço
             </h3>
-            <p>{entrega.endereco}</p>
+            <p>{entrega.endereco}{entrega.numero ? `, ${entrega.numero}` : ""}{entrega.cidade ? ` - ${entrega.cidade}` : ""}</p>
             <Button
               variant="outline"
               size="sm"
               onClick={() => {
-                const encoded = encodeURIComponent(entrega.endereco)
+                const addressString = `${entrega.endereco}${entrega.numero ? ", " + entrega.numero : ""}${entrega.cidade ? " - " + entrega.cidade : ""}`
+                const encoded = encodeURIComponent(addressString)
                 window.open(`https://www.google.com/maps/search/?api=1&query=${encoded}`, "_blank")
               }}
             >

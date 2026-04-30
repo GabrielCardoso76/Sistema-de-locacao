@@ -78,14 +78,14 @@ export function CalendarioContent() {
         </CardHeader>
         <CardContent>
           <div className="flex flex-col md:flex-row gap-8 items-start">
-            <div className="flex-1 max-w-sm mx-auto">
+            <div className="flex-1 w-full mx-auto overflow-hidden">
               <Calendar
                 mode="single"
                 month={date}
                 selected={date}
                 onMonthChange={setDate}
                 onSelect={handleDayClick}
-                className="rounded-md border p-4 shadow-sm w-full"
+                className="rounded-md border p-4 shadow-sm w-full sm:text-lg [--cell-size:3rem] sm:[--cell-size:3.5rem]"
                 modifiers={{
                   hasEntregas: (d) => {
                     const k = format(d, "yyyy-MM-dd");

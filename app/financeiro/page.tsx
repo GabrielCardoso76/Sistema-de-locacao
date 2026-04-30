@@ -5,7 +5,7 @@ export default function FinanceiroPage() {
   return (
     <AppShell
       title="Financeiro"
-      description="Gerenciamento de pagamentos e recebimentos"
+
     >
       <FinanceiroContent />
     </AppShell>

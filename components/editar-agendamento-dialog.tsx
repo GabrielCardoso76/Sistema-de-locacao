@@ -486,7 +486,7 @@ export function EditarAgendamentoDialog({
                           type="number"
                           value={item.quantidade}
                           onChange={(e) => updateItem(index, "quantidade", parseInt(e.target.value) || 1)}
-                          className="h-9 rounded-none text-center bg-background text-foreground dark:text-white font-medium"
+                          className="h-9 rounded-none text-center bg-background text-foreground dark:text-white font-bold text-lg w-full"
                           min={1}
                         />
                         <Button

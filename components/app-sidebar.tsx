@@ -12,7 +12,7 @@ import { Calendar as CalendarIcon } from "lucide-react"
 const navItems = [
   { href: "/", label: "Dashboard", icon: Home },
   { href: "/agendamentos", label: "Agendamentos", icon: Calendar },
-  { href: "/estoque", label: "TS Locações", icon: Package },
+  { href: "/estoque", label: "Estoque", icon: Package },
   { href: "/rota", label: "Rota do Dia", icon: MapPin },
   { href: "/calendario", label: "Calendário", icon: CalendarIcon },
   { href: "/financeiro", label: "Financeiro", icon: DollarSign },

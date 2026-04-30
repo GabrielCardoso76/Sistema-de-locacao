@@ -14,7 +14,6 @@ import { Button } from "@/components/ui/button"
 interface DashboardStats {
   entregasHoje: number
   retirasHoje: number
-  estoqueBaixo: number
   emLimpeza: number
 }
 
@@ -22,7 +21,7 @@ export function DashboardContent() {
   const [stats, setStats] = useState<DashboardStats>({
     entregasHoje: 0,
     retirasHoje: 0,
-    estoqueBaixo: 0,
+
     emLimpeza: 0,
   })
   const [entregasHoje, setEntregasHoje] = useState<Entrega[]>([])
@@ -63,8 +62,7 @@ export function DashboardContent() {
       setStats({
         entregasHoje: entregas?.length || 0,
         retirasHoje: retiradas?.length || 0,
-        estoqueBaixo: estoqueBaixo.length,
-        emLimpeza,
+                emLimpeza,
       })
       setLoading(false)
     }
@@ -111,18 +109,6 @@ export function DashboardContent() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Estoque Baixo
-            </CardTitle>
-            <AlertTriangle className="h-4 w-4 text-warning" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.estoqueBaixo}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
               Em Limpeza
             </CardTitle>
             <Package className="h-4 w-4 text-muted-foreground" />
@@ -162,9 +148,9 @@ export function DashboardContent() {
                   </div>
                   <Badge variant={entrega.status === "agendada" ? "secondary" : "default"}>
                     {entrega.status === "agendada" && "Agendada"}
-                    {entrega.status === "em_rota" && "Em Rota"}
+                    {entrega.status === "em_rota_entrega" && "Em Rota"}
                     {entrega.status === "entregue" && "Entregue"}
-                    {entrega.status === "retirada" && "Retirada"}
+                    {entrega.status === "em_rota_retirada" && "Retirada"}
                   </Badge>
                 </div>
               ))}
