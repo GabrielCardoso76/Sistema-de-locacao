@@ -23,6 +23,12 @@ export function RotaContent() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date())
   const [showMap, setShowMap] = useState(true)
   const [filtroTipo, setFiltroTipo] = useState<"todos" | "entregas" | "retiradas">("todos")
+  const entregasFiltradas = entregas.filter(e => {
+    if (filtroTipo === "entregas") return !e.isRetirada;
+    if (filtroTipo === "retiradas") return e.isRetirada;
+    return true;
+  });
+
 
   async function togglePago(entrega: Entrega & { isRetirada?: boolean }) {
     await supabase
@@ -52,7 +58,7 @@ export function RotaContent() {
   async function geocodeAddress(address: string): Promise<{ lat: number; lng: number } | null> {
     try {
       const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(`${address}, SP, Brasil`)}&limit=1`
       )
       const data = await response.json()
       if (data && data.length > 0) {
@@ -319,7 +325,8 @@ export function RotaContent() {
               <CardContent className="p-0">
                 <div className="h-[400px] lg:h-[500px] relative z-0">
                   <MapaWrapper
-                    entregas={entregas}
+                    entregas={entregasFiltradas}
+
                     selectedEntrega={selectedEntrega}
                     onSelectEntrega={handleSelectEntrega}
                   />

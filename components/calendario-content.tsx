@@ -85,7 +85,7 @@ export function CalendarioContent() {
                 selected={date}
                 onMonthChange={setDate}
                 onSelect={handleDayClick}
-                className="rounded-md border p-4 shadow-sm w-full sm:text-lg [--cell-size:3rem] sm:[--cell-size:3.5rem]"
+                className="rounded-md border p-4 shadow-sm w-full md:w-[75%] mx-auto sm:text-lg [--cell-size:3rem] sm:[--cell-size:3.5rem]"
                 modifiers={{
                   hasEntregas: (d) => {
                     const k = format(d, "yyyy-MM-dd");
