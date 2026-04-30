@@ -35,6 +35,7 @@ export function EditarEstoqueDialog({
     quantidade_disponivel: 0,
     quantidade_limpeza: 0,
     preco_unitario: "0",
+    nome: "",
   })
 
   useEffect(() => {
@@ -44,6 +45,7 @@ export function EditarEstoqueDialog({
         quantidade_disponivel: estoque.quantidade_disponivel,
         quantidade_limpeza: estoque.quantidade_limpeza,
         preco_unitario: estoque.produto.preco_unitario?.toString() || "0",
+        nome: estoque.produto.nome || "",
       })
     }
   }, [estoque])
@@ -73,7 +75,8 @@ export function EditarEstoqueDialog({
       await supabase
         .from("produtos")
         .update({
-          preco_unitario: preco
+          preco_unitario: preco,
+          nome: form.nome
         })
         .eq("id", estoque!.produto_id)
 
@@ -115,12 +118,22 @@ export function EditarEstoqueDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Editar Estoque - {estoque.produto.nome}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+                    <div className="space-y-2">
+            <Label htmlFor="nome">Nome do Produto</Label>
+            <Input
+              id="nome"
+              value={form.nome}
+              onChange={(e) => setForm({ ...form, nome: e.target.value })}
+              required
+            />
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="preco_unitario">Preço Unitário (R$)</Label>
             <Input

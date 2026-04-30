@@ -84,7 +84,7 @@ export function RotaContent() {
         .select("*, cliente:clientes(*), itens:itens_entrega(*, produto:produtos(*))")
         .gte("data_retirada", inicioHoje)
         .lt("data_retirada", fimHoje)
-        .in("status", ["entregue", "aguardando_retirada", "em_rota_retirada"])
+        .in("status", ["agendada", "em_rota_entrega", "entregue", "aguardando_retirada", "em_rota_retirada"])
     ])
 
     const entregasData = (entregasResult.data || []).map(e => ({ ...e, isRetirada: false }))
@@ -140,7 +140,7 @@ export function RotaContent() {
     for (let i = 0; i < entregas.length; i++) {
       await supabase
         .from("entregas")
-        .update({ ordem_rota: i + 1, status: "em_rota" })
+        .update({ ordem_rota: i + 1, status: entregas[i].isRetirada ? "em_rota_retirada" : "em_rota_entrega" })
         .eq("id", entregas[i].id)
     }
     setRotaIniciada(true)
