@@ -25,6 +25,8 @@ export function DashboardContent() {
     emLimpeza: 0,
   })
   const [entregasHoje, setEntregasHoje] = useState<Entrega[]>([])
+  const [proximaEntrega, setProximaEntrega] = useState<Entrega | null>(null)
+  const [progresso, setProgresso] = useState({ feitas: 0, total: 0 })
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -55,7 +57,26 @@ export function DashboardContent() {
 
       const emLimpeza = estoque?.reduce((acc, e) => acc + e.quantidade_limpeza, 0) || 0
 
-      setEntregasHoje(entregas || [])
+      const entregasValidas = entregas || []
+      setEntregasHoje(entregasValidas)
+
+      // Identificar a proxima entrega
+      const agora = new Date()
+      const entregasPendentes = entregasValidas.filter(e =>
+        e.status !== "entregue" && e.status !== "finalizada" && e.status !== "cancelada"
+      )
+
+      if (entregasPendentes.length > 0) {
+        setProximaEntrega(entregasPendentes[0])
+      } else {
+        setProximaEntrega(null)
+      }
+
+      // Progresso (status entregue + pendentes)
+      const totalEntregas = entregasValidas.filter(e => e.status !== "cancelada").length
+      const entregasFeitas = entregasValidas.filter(e => e.status === "entregue" || e.status === "finalizada" || e.status === "aguardando_retirada" || e.status === "em_rota_retirada").length
+      setProgresso({ feitas: entregasFeitas, total: totalEntregas })
+
       setStats({
         entregasHoje: entregas?.length || 0,
         retirasHoje: retiradas?.length || 0,
@@ -115,6 +136,38 @@ export function DashboardContent() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Próxima Entrega */}
+      {proximaEntrega && (
+        <Card>
+          <CardHeader className="flex flex-row items-start justify-between pb-2">
+            <div className="space-y-1">
+              <CardTitle>Próxima Entrega</CardTitle>
+              <div className="text-sm text-muted-foreground flex items-center gap-2">
+                <Truck className="h-4 w-4" />
+                {proximaEntrega.cliente?.nome}
+              </div>
+            </div>
+            <div className="flex flex-col items-end">
+              <div className="text-sm font-medium text-primary bg-primary/10 px-2 py-1 rounded-md">
+                {progresso.feitas}/{progresso.total} concluídas
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="flex justify-between items-end mt-2">
+              <div className="space-y-1">
+                <p className="font-medium text-lg">{format(parseISO(proximaEntrega.data_entrega), "HH:mm", { locale: ptBR })}</p>
+                <p className="text-sm text-muted-foreground">{proximaEntrega.endereco}{proximaEntrega.numero ? `, ${proximaEntrega.numero}` : ""}</p>
+                {proximaEntrega.bairro && <p className="text-sm text-muted-foreground">{proximaEntrega.bairro}</p>}
+              </div>
+              <Badge variant="secondary">
+                {proximaEntrega.status === "em_rota_entrega" ? "Em Rota" : "Agendada"}
+              </Badge>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Entregas de Hoje */}
       <Card>
