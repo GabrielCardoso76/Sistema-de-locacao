@@ -1,4 +1,4 @@
-export type StatusEntrega = 'agendada' | 'em_rota' | 'entregue' | 'retirada'
+export type StatusEntrega = 'agendada' | 'em_rota_entrega' | 'entregue' | 'aguardando_retirada' | 'em_rota_retirada' | 'finalizada'
 
 export interface Produto {
   id: string

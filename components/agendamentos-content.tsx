@@ -84,12 +84,16 @@ export function AgendamentosContent() {
     switch (status) {
       case "agendada":
         return <Badge variant="secondary">Agendada</Badge>
-      case "em_rota":
-        return <Badge className="bg-primary">Em Rota</Badge>
+      case "em_rota_entrega":
+        return <Badge className="bg-primary text-primary-foreground">Em Rota de Entrega</Badge>
       case "entregue":
         return <Badge className="bg-success text-success-foreground">Entregue</Badge>
-      case "retirada":
-        return <Badge variant="outline">Retirada</Badge>
+      case "aguardando_retirada":
+        return <Badge variant="outline" className="border-warning text-warning">Aguardando Retirada</Badge>
+      case "em_rota_retirada":
+        return <Badge className="bg-primary text-primary-foreground">Em Rota de Retirada</Badge>
+      case "finalizada":
+        return <Badge variant="outline">Finalizada</Badge>
       default:
         return null
     }
@@ -106,7 +110,7 @@ export function AgendamentosContent() {
     <div className="space-y-6">
       {/* Ações e Filtros */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-1 gap-2">
+        <div className="flex flex-col sm:flex-row flex-1 gap-2">
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -123,9 +127,11 @@ export function AgendamentosContent() {
             <SelectContent>
               <SelectItem value="todos">Todos</SelectItem>
               <SelectItem value="agendada">Agendada</SelectItem>
-              <SelectItem value="em_rota">Em Rota</SelectItem>
+              <SelectItem value="em_rota_entrega">Em Rota de Entrega</SelectItem>
               <SelectItem value="entregue">Entregue</SelectItem>
-              <SelectItem value="retirada">Retirada</SelectItem>
+              <SelectItem value="aguardando_retirada">Aguardando Retirada</SelectItem>
+              <SelectItem value="em_rota_retirada">Em Rota de Retirada</SelectItem>
+              <SelectItem value="finalizada">Finalizada</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -181,7 +187,7 @@ export function AgendamentosContent() {
                       </div>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      {entrega.endereco}{entrega.numero && `, ${entrega.numero}`}{entrega.cidade && ` - ${entrega.cidade}`}
+                      {entrega.endereco}{entrega.numero && `, ${entrega.numero}`}{entrega.cidade && ` - Cidade: ${entrega.cidade}`}
                     </p>
                     <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
                       <span>

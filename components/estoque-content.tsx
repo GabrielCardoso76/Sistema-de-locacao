@@ -286,12 +286,6 @@ export function EstoqueContent() {
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
                           <h3 className="font-medium">{item.produto.nome}</h3>
-                          {disponivelDisplay <= 2 && (
-                            <Badge variant="outline" className="border-warning text-warning">
-                              <AlertTriangle className="mr-1 h-3 w-3" />
-                              Baixo
-                            </Badge>
-                          )}
                         </div>
                         <div className="flex flex-wrap gap-3 text-sm">
                           <span className="flex items-center gap-1">

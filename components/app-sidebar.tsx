@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Calendar, Home, MapPin, Package, Settings, Menu, X } from "lucide-react"
+import { Calendar, Home, MapPin, Package, Settings, Menu, X, DollarSign } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { useState } from "react"
@@ -15,6 +15,7 @@ const navItems = [
   { href: "/estoque", label: "TS Locações", icon: Package },
   { href: "/rota", label: "Rota do Dia", icon: MapPin },
   { href: "/calendario", label: "Calendário", icon: CalendarIcon },
+  { href: "/financeiro", label: "Financeiro", icon: DollarSign },
   { href: "/configuracoes", label: "Configurações", icon: Settings },
 ]
 
