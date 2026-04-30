@@ -25,7 +25,6 @@ export function DashboardContent() {
     emLimpeza: 0,
   })
   const [entregasHoje, setEntregasHoje] = useState<Entrega[]>([])
-  const [alertasEstoque, setAlertasEstoque] = useState<Estoque[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -54,11 +53,9 @@ export function DashboardContent() {
         .from("estoque")
         .select("*, produto:produtos(*)")
 
-      const estoqueBaixo = estoque?.filter(e => e.quantidade_disponivel <= 2) || []
       const emLimpeza = estoque?.reduce((acc, e) => acc + e.quantidade_limpeza, 0) || 0
 
       setEntregasHoje(entregas || [])
-      setAlertasEstoque(estoqueBaixo)
       setStats({
         entregasHoje: entregas?.length || 0,
         retirasHoje: retiradas?.length || 0,
@@ -159,35 +156,6 @@ export function DashboardContent() {
         </CardContent>
       </Card>
 
-      {/* Alertas de Estoque */}
-      {alertasEstoque.length > 0 && (
-        <Card className="border-warning/50 bg-warning/5">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-warning" />
-              Alertas de Estoque
-            </CardTitle>
-            <Link href="/estoque">
-              <Button variant="outline" size="sm">Gerenciar</Button>
-            </Link>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {alertasEstoque.map((item) => (
-                <div
-                  key={item.id}
-                  className="flex items-center justify-between rounded-lg bg-background p-3"
-                >
-                  <span className="font-medium">{item.produto?.nome}</span>
-                  <span className="text-sm text-muted-foreground">
-                    {item.quantidade_disponivel} disponível
-                  </span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
     </div>
   )
 }

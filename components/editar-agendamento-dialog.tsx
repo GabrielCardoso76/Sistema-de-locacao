@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { format, parseISO } from "date-fns"
-import { Plus, Minus, Trash2 } from "lucide-react"
+import { Plus, Minus, Trash2, Mic, MapPin } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -40,6 +40,34 @@ export function EditarAgendamentoDialog({
   onSuccess,
   entrega,
 }: EditarAgendamentoDialogProps & { entrega: any | null }) {
+  const [isListening, setIsListening] = useState(false);
+
+  const startListening = () => {
+    if (typeof window === "undefined") return;
+    // @ts-ignore
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Seu navegador não suporta reconhecimento de voz.");
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = "pt-BR";
+    recognition.interimResults = false;
+
+    recognition.onstart = () => setIsListening(true);
+
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      setForm(prev => ({ ...prev, endereco: prev.endereco ? `${prev.endereco} ${transcript}` : transcript }));
+    };
+
+    recognition.onend = () => setIsListening(false);
+    recognition.onerror = () => setIsListening(false);
+
+    recognition.start();
+  };
+
   const [loading, setLoading] = useState(false)
   const [produtos, setProdutos] = useState<(Estoque & { produto: Produto })[]>([])
   const [itens, setItens] = useState<ItemForm[]>([])
@@ -94,10 +122,69 @@ export function EditarAgendamentoDialog({
   }, [open, entrega])
 
 
+  // Estado para guardar o estoque base original
+  const [estoqueBase, setEstoqueBase] = useState<(Estoque & { produto: Produto })[]>([]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    async function calcDisponibilidadeReal() {
+      if (!form.dataEntrega || !form.dataRetirada) {
+        setProdutos(estoqueBase);
+        return;
+      }
+
+      try {
+        const dataEntregaISO = new Date(`${form.dataEntrega}T${form.horaEntrega || "00:00"}`).toISOString();
+        const dataRetiradaISO = new Date(`${form.dataRetirada}T${form.horaRetirada || "23:59"}`).toISOString();
+
+        const { data: entregasNoPeriodo } = await supabase
+          .from("entregas")
+          .select(`
+            id,
+            data_entrega,
+            data_retirada,
+            status,
+            itens:itens_entrega(produto_id, quantidade)
+          `)
+          .lte("data_entrega", dataRetiradaISO)
+          .gte("data_retirada", dataEntregaISO)
+          .neq("status", "cancelada")
+          .neq("status", "retirada")
+          .neq("status", "finalizada");
+
+        const reservadosMap = new Map<string, number>();
+        entregasNoPeriodo?.forEach((e: any) => {
+          if (e.id === entrega?.id) return; // ignora a propria entrega na contagem
+          e.itens?.forEach((item: any) => {
+            const atual = reservadosMap.get(item.produto_id) || 0;
+            reservadosMap.set(item.produto_id, atual + item.quantidade);
+          });
+        });
+
+        const produtosAtualizados = estoqueBase.map(p => {
+          const qtdReservada = reservadosMap.get(p.produto_id) || 0;
+          const novaDisponivel = p.quantidade_total - qtdReservada - p.quantidade_limpeza;
+          return { ...p, quantidade_disponivel: Math.max(0, novaDisponivel) };
+        });
+
+        setProdutos(produtosAtualizados);
+      } catch (e) {
+        console.error("Erro ao calcular disponibilidade:", e);
+        setProdutos(estoqueBase);
+      }
+    }
+
+    if (estoqueBase.length > 0) {
+      calcDisponibilidadeReal();
+    }
+  }, [form.dataEntrega, form.horaEntrega, form.dataRetirada, form.horaRetirada, estoqueBase, open, entrega?.id]);
+
   async function loadProdutos() {
     const { data } = await supabase
       .from("estoque")
       .select("*, produto:produtos(*)")
+    setEstoqueBase(data || []);
     setProdutos(data || [])
   }
 
@@ -113,6 +200,39 @@ export function EditarAgendamentoDialog({
 
   function removeItem(index: number) {
     setItens(itens.filter((_, i) => i !== index))
+  }
+
+  function renderResumoItens() {
+    let mesas = 0;
+    let cadeiras = 0;
+
+    itens.forEach((item) => {
+      const produto = produtos.find((p) => p.produto_id === item.produto_id);
+      if (produto) {
+        if (produto.produto.nome.toLowerCase() === "mesa avulsa") {
+          mesas += item.quantidade;
+        } else if (produto.produto.nome.toLowerCase() === "cadeira avulsa") {
+          cadeiras += item.quantidade;
+        }
+      }
+    });
+
+    if (mesas === 0 && cadeiras === 0) return null;
+
+    const kitsPossiveis = Math.min(mesas, Math.floor(cadeiras / 4));
+    const mesasRestantes = mesas - kitsPossiveis;
+    const cadeirasRestantes = cadeiras - (kitsPossiveis * 4);
+
+    const partes = [];
+    if (kitsPossiveis > 0) partes.push(`${kitsPossiveis} Jogo${kitsPossiveis > 1 ? "s" : ""} (${kitsPossiveis} Mesa${kitsPossiveis > 1 ? "s" : ""} + ${kitsPossiveis * 4} Cadeira${kitsPossiveis * 4 > 1 ? "s" : ""})`);
+    if (mesasRestantes > 0) partes.push(`${mesasRestantes} Mesa${mesasRestantes > 1 ? "s" : ""} avulsa${mesasRestantes > 1 ? "s" : ""}`);
+    if (cadeirasRestantes > 0) partes.push(`${cadeirasRestantes} Cadeira${cadeirasRestantes > 1 ? "s" : ""} avulsa${cadeirasRestantes > 1 ? "s" : ""}`);
+
+    return partes.length > 0 ? (
+      <div className="mt-4 p-3 bg-primary/10 rounded-md border border-primary/20 text-sm text-primary-foreground/90 font-medium dark:text-primary-foreground">
+        Total: {partes.join(" + ")}
+      </div>
+    ) : null;
   }
 
   function addKitJogo() {
@@ -350,7 +470,7 @@ export function EditarAgendamentoDialog({
             </div>
             <div className="grid gap-4 sm:grid-cols-12">
               <div className="space-y-2 sm:col-span-6">
-                <Label htmlFor="endereco">Rua, Bairro</Label>
+                <div className="flex justify-between items-center"><Label htmlFor="endereco">Rua, Bairro</Label><div className="flex gap-2"><Button type="button" variant="ghost" size="icon" className={`h-6 w-6 ${isListening ? "text-red-500 animate-pulse" : "text-muted-foreground"}`} onClick={startListening} title="Ditar endereço"><Mic className="h-4 w-4" /></Button><Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground" onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${form.endereco}, ${form.numero || ""}, ${form.cidade || ""}, SP, Brasil`)}`, "_blank")} title="Verificar no Maps"><MapPin className="h-4 w-4" /></Button></div></div>
                 <Input
                   id="endereco"
                   value={form.endereco}
@@ -486,7 +606,7 @@ export function EditarAgendamentoDialog({
                           type="number"
                           value={item.quantidade}
                           onChange={(e) => updateItem(index, "quantidade", parseInt(e.target.value) || 1)}
-                          className="h-9 rounded-none text-center bg-background text-foreground dark:text-white font-bold text-lg w-full"
+                          className="h-9 rounded-none text-center bg-white dark:bg-zinc-800 text-black dark:text-white font-bold text-lg w-full border-x-0"
                           min={1}
                         />
                         <Button
@@ -513,6 +633,7 @@ export function EditarAgendamentoDialog({
                 ))}
               </div>
             )}
+            {renderResumoItens()}
           </div>
 
           {/* Valores e Pagamento */}
